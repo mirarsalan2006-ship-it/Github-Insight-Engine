@@ -14,6 +14,47 @@
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #c9d1d9; overflow: hidden; }
         #vanta-bg { position: fixed; z-index: -1; top: 0; left: 0; width: 100%; height: 100%; }
 
+        /* NEW: Cinematic Black Curtain */
+        #black-curtain {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000000; z-index: 10000; pointer-events: none;
+            animation: curtainFade 1.5s ease-out 0.3s forwards;
+        }
+        @keyframes curtainFade {
+            0% { opacity: 1; }
+            100% { opacity: 0; visibility: hidden; }
+        }
+
+        /* UPGRADED: Landing Page CSS with Fade-In Animation */
+        .landing-container {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 600px; padding: 60px 40px; text-align: center;
+            background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.8);
+            z-index: 100; transition: opacity 0.6s ease, transform 0.6s ease;
+            
+            /* Start invisible and animate in */
+            opacity: 0; 
+            animation: landingFadeIn 1.5s ease-out 0.8s forwards;
+        }
+        @keyframes landingFadeIn {
+            0% { opacity: 0; transform: translate(-50%, -45%); filter: blur(4px); }
+            100% { opacity: 1; transform: translate(-50%, -50%); filter: blur(0); }
+        }
+
+        .landing-container h1 { font-size: 50px; color: #58a6ff; margin: 0 0 15px 0; letter-spacing: 1px; }
+        .landing-container p { font-size: 18px; color: #8b949e; margin-bottom: 40px; line-height: 1.6; }
+        
+        .launch-btn { 
+            padding: 16px 40px; font-size: 20px; font-weight: bold; color: white; 
+            background: linear-gradient(135deg, #238636, #2ea043); border: none; border-radius: 30px; 
+            cursor: pointer; transition: 0.3s; box-shadow: 0 8px 20px rgba(35, 134, 54, 0.4); 
+        }
+        .launch-btn:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 12px 25px rgba(35, 134, 54, 0.6); }
+        
+        .fade-out { opacity: 0 !important; transform: translate(-50%, -55%) !important; pointer-events: none; }
+        .fade-in { opacity: 1 !important; transform: translate(-50%, -50%) !important; pointer-events: auto; }
+
         .container {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 900px; max-height: 90vh; overflow-y: auto; padding: 40px;
@@ -34,7 +75,6 @@
         .profile-img { width: 120px; height: 120px; border-radius: 50%; margin-top: 10px; border: 3px solid #30363d; display: none; }
         #bio { color: #8b949e; font-size: 14px; margin-bottom: 10px; }
         
-        /* NEW: AI Summary Style */
         #ai-summary-container { display: none; background: rgba(88, 166, 255, 0.1); border-left: 4px solid #58a6ff; padding: 15px; text-align: left; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.5; color: #c9d1d9;}
         
         .badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(88, 166, 255, 0.1); border: 1px solid #58a6ff; color: #58a6ff; padding: 4px 10px; border-radius: 20px; font-size: 12px; cursor: help; }
@@ -80,94 +120,46 @@
         .term-cursor { display: inline-block; width: 10px; height: 18px; background: #0f0; animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
 
-        /* NEW: Time Machine / Wrapped Overlay */
+        /* Time Machine / Wrapped Overlay */
         #wrapped-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #FF7B72, #D2A8FF); z-index: 9999; justify-content: center; align-items: center; text-align: center; color: white; flex-direction: column; }
         .wrapped-slide { font-size: 40px; font-weight: bold; opacity: 0; position: absolute; transition: opacity 1s ease-in-out; text-shadow: 0 4px 15px rgba(0,0,0,0.4); padding: 0 20px;}
-        
-        /* =========================================
-           📱 MOBILE RESPONSIVENESS (MEDIA QUERIES)
-           ========================================= */
-        
-        /* Tablets and smaller screens */
+
+        /* Mobile Responsiveness */
         @media (max-width: 950px) {
-            .container {
-                width: 95vw;
-                height: 95vh;
-                padding: 20px;
-            }
-            
-            /* Stack the bottom three columns vertically */
-            .bottom-split {
-                flex-direction: column;
-            }
-            
-            /* Make the charts, repos, and activity take full width */
-            .chart-container, .repo-section, .activity-section {
-                width: 100%;
-                max-height: 400px; /* Keep them scrollable internally */
-                box-sizing: border-box;
-            }
-
-            /* Adjust stats grid to 2 items per row */
-            .stat-box {
-                width: 46% !important; 
-            }
-
-            /* Shrink modal for smaller screens */
-            .modal-content {
-                width: 95%;
-                padding: 20px;
-                box-sizing: border-box;
-            }
+            .landing-container { width: 90%; padding: 40px 20px; }
+            .container { width: 95vw; height: 95vh; padding: 20px; }
+            .bottom-split { flex-direction: column; }
+            .chart-container, .repo-section, .activity-section { width: 100%; max-height: 400px; box-sizing: border-box; }
+            .stat-box { width: 46% !important; }
+            .modal-content { width: 95%; padding: 20px; box-sizing: border-box; }
         }
 
-        /* Mobile Phones */
         @media (max-width: 600px) {
-            .header-actions {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 15px;
-            }
-
-            .search-box {
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .search-box button {
-                width: 100%;
-            }
-
-            /* Make stats stack 1 per row on very small screens */
-            .stat-box {
-                width: 100% !important; 
-            }
-
-            /* Stack the modal stats */
-            .modal-stats {
-                flex-direction: column;
-                gap: 10px;
-                text-align: center;
-            }
-            
-            /* Make the Terminal font slightly smaller */
-            #terminal-overlay {
-                padding: 20px;
-                font-size: 14px;
-            }
-            
-            /* Make Wrapped text fit */
-            .wrapped-slide {
-                font-size: 28px;
-            }
+            .header-actions { flex-direction: column; align-items: stretch; gap: 15px; }
+            .search-box { flex-direction: column; width: 100%; }
+            .search-box button { width: 100%; }
+            .stat-box { width: 100% !important; }
+            .modal-stats { flex-direction: column; gap: 10px; text-align: center; }
+            #terminal-overlay { padding: 20px; font-size: 14px; }
+            .wrapped-slide { font-size: 28px; }
         }
     </style>
 </head>
 <body>
 
+    <div id="black-curtain"></div>
+
     <div id="vanta-bg"></div>
 
-    <div class="container" id="dashboard-content">
+    <div id="landing-page" class="landing-container">
+        <h1>GitHub Insight</h1>
+        <p>Uncover deep developer analytics, AI-powered summaries, and gamified metrics. Initialize the engine to map the code journey.</p>
+        <button class="launch-btn" onclick="launchEngine()">Initialize Engine 🚀</button>
+        
+        <p style="margin-top: 45px; margin-bottom: 0; font-size: 11px; color: rgba(139, 148, 158, 0.6); letter-spacing: 2px; text-transform: uppercase;">Developer: Arsalan Mir</p>
+    </div>
+
+    <div class="container" id="dashboard-content" style="opacity: 0; pointer-events: none; transition: opacity 0.8s ease, transform 0.8s ease;">
         <h1 style="margin-top: 0; margin-bottom: 20px; text-align: left;">GitHub Insight</h1>
         
         <div class="header-actions">
@@ -272,12 +264,27 @@
         VANTA.NET({ el: "#vanta-bg", mouseControls: true, touchControls: true, color: 0x58a6ff, backgroundColor: 0x010409, points: 15.0, maxDistance: 25.0, spacing: 20.0 });
         
         let langChartInstance = null; let starChartInstance = null; let radarChartInstance = null; let punchChartInstance = null;
-        let globalRepoData = []; let wrappedData = {}; // Stores data for Time Machine
+        let globalRepoData = []; let wrappedData = {}; 
 
         window.onload = () => {
             const params = new URLSearchParams(window.location.search);
-            if(params.has('user')) { document.getElementById('username').value = params.get('user'); analyzeProfile(); }
+            if(params.has('user')) { 
+                document.getElementById('landing-page').style.display = 'none';
+                document.getElementById('dashboard-content').classList.add('fade-in');
+                document.getElementById('username').value = params.get('user'); 
+                analyzeProfile(); 
+            }
         };
+
+        function launchEngine() {
+            const landing = document.getElementById('landing-page');
+            const dashboard = document.getElementById('dashboard-content');
+            landing.classList.add('fade-out');
+            setTimeout(() => {
+                landing.style.display = 'none';
+                dashboard.classList.add('fade-in');
+            }, 600); 
+        }
 
         async function analyzeProfile() {
             const username = document.getElementById('username').value;
