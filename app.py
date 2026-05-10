@@ -15,7 +15,7 @@ limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["15 per minute"],
-    storage_uri="memory://"SSSS
+    storage_uri="memory://"
 )
 
 # NEW: Custom JSON response when someone gets blocked
