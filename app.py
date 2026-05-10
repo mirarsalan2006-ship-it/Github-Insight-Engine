@@ -4,9 +4,24 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 load_dotenv()
 app = Flask(__name__)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["25 per minute"],
+    storage_uri="memory://"
+)
+
+# NEW: Custom JSON response when someone gets blocked
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    return jsonify({"error": "Rate limit exceeded. You can only search 25 times per minute. Please chill for a bit!"}), 429
 
 def get_headers():
     return {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
