@@ -52,8 +52,8 @@
         }
         .launch-btn:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 12px 25px rgba(35, 134, 54, 0.6); }
         
-        .fade-out { opacity: 0 !important; transform: translate(-50%, -55%) !important; pointer-events: none; }
-        .fade-in { opacity: 1 !important; transform: translate(-50%, -50%) !important; pointer-events: auto; }
+        .fade-out { opacity: 0 !important; transform: translate(-50%, -55%) !important; pointer-events: none !important; }
+        .fade-in { opacity: 1 !important; transform: translate(-50%, -50%) !important; pointer-events: auto !important; }
 
         .container {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -164,11 +164,13 @@
         
         <div class="header-actions">
             <div class="search-box">
-                <input type="text" id="username" placeholder="Search a username..." onkeypress="if(event.key === 'Enter') analyzeProfile()">
-                <button onclick="analyzeProfile()">Analyze</button>
-                <button onclick="triggerTerminal()" id="term-btn" style="display:none; background-color: #000; border: 1px solid #0f0; color: #0f0;">💻 Terminal</button>
-                <button onclick="triggerWrapped()" id="wrap-btn" class="btn-outline" style="display:none;">🕰️ Wrapped</button>
-            </div>
+            <input type="text" id="username" placeholder="Search a username..." onkeypress="if(event.key === 'Enter') analyzeProfile()">
+            
+            <button id="analyze-btn" onclick="analyzeProfile()">Analyze</button>
+            
+            <button onclick="triggerTerminal()" id="term-btn" style="display:none; background-color: #000; border: 1px solid #0f0; color: #0f0;">💻 Terminal</button>
+            <button onclick="triggerWrapped()" id="wrap-btn" class="btn-outline" style="display:none;">🕰️ Wrapped</button>
+        </div>
         </div>
 
         <img id="avatar" class="profile-img" src="" alt="Profile">
@@ -289,7 +291,12 @@
         async function analyzeProfile() {
             const username = document.getElementById('username').value;
             if(!username) return;
-            const btn = document.querySelector('button'); btn.innerText = "Fetching..."; btn.disabled = true;
+            
+            // UPDATED: Grab the specific button by ID and change text to Analyzing
+            const btn = document.getElementById('analyze-btn'); 
+            btn.innerText = "Analyzing..."; 
+            btn.disabled = true;
+            
             window.history.pushState({}, '', '?user=' + username);
 
             try {
