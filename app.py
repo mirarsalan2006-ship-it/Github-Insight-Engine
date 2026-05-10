@@ -3,28 +3,28 @@ import requests
 import os
 from dotenv import load_dotenv
 from datetime import datetime
-
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 
 load_dotenv()
 app = Flask(__name__)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
+# Smart IP tracker that works locally AND on Render
+def get_real_ip():
+    if request.headers.get("X-Forwarded-For"):
+        return request.headers.get("X-Forwarded-For").split(",")[0].strip()
+    return request.remote_addr
+
+# Initialize the Limiter
 limiter = Limiter(
-    get_remote_address,
+    key_func=get_real_ip,
     app=app,
-    default_limits=["15 per minute"],
     storage_uri="memory://"
 )
 
-# NEW: Custom JSON response when someone gets blocked
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    return jsonify({"error": "Rate limit exceeded. You can only search 15 times per minute. Please chill for a bit!"}), 429
-
-def get_headers():
-    return {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
+    return jsonify({"error": "Rate limit exceeded. You can only search 25 times per minute. Please chill for a bit!"}), 429
 
 def get_heatmap_data(username):
     if not GITHUB_TOKEN: return None
@@ -41,7 +41,8 @@ def get_heatmap_data(username):
     }
     """
     try:
-        res = requests.post("https://api.github.com/graphql", json={'query': query, 'variables': {"userName": username}}, headers=get_headers())
+        headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
+        res = requests.post("https://api.github.com/graphql", json={'query': query, 'variables': {"userName": username}}, headers=headers)
         return res.json().get('data', {}).get('user', {}).get('contributionsCollection', {}).get('contributionCalendar')
     except:
         return None
@@ -51,11 +52,12 @@ def home():
     return render_template('index.html')
 
 @app.route('/api/analyze', methods=['POST'])
+@limiter.limit("25 per minute")
 def analyze_user():
     username = request.json.get('username')
     if not username: return jsonify({"error": "Username required"}), 400
 
-    headers = get_headers()
+    headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
     try:
         user_res = requests.get(f"https://api.github.com/users/{username}", headers=headers)
         if user_res.status_code != 200: return jsonify({"error": "User not found"}), 404
@@ -72,7 +74,7 @@ def analyze_user():
         
         recent_activity, punchcard_data, commit_messages = [], [], []
         pr_count = 0
-        issue_resolution_times = [] # NEW: Bug Hunter
+        issue_resolution_times = []
 
         for e in events_data:
             e_type = e.get("type")
@@ -83,12 +85,10 @@ def analyze_user():
 
             payload = e.get("payload", {})
             
-            # Commit Messages
             if e_type == "PushEvent":
                 for c in payload.get("commits", []):
                     commit_messages.append(c.get("message", "").lower())
             
-            # Bug Hunter Metric & PR Count
             if e_type in ["PullRequestEvent", "IssuesEvent"]:
                 if e_type == "PullRequestEvent": pr_count += 1
                 if payload.get("action") == "closed":
@@ -111,7 +111,7 @@ def analyze_user():
                 elif e_type == "ForkEvent": action, icon = "Forked", "🍴"
                 recent_activity.append({"action": action, "repo": repo_name.split('/')[-1], "full_repo": repo_name, "date": clean_date, "icon": icon})
 
-        langs, repos_by_year = {}, {} # NEW: Time Machine Data
+        langs, repos_by_year = {}, {}
         total_stars, original_repos, forked_repos = 0, 0, 0
         all_repos = []
         
@@ -134,7 +134,6 @@ def analyze_user():
                 "desc": r.get("description") or "No description provided.", "forks": r.get("forks_count", 0), "issues": r.get("open_issues_count", 0), "updated": r.get("updated_at") 
             })
 
-        # Personas & Collab
         rage_words = ["fix", "bug", "hate", "fuck", "damn", "asdf", "finally", "stupid", "shit", "ugh", "wip"]
         zen_words = ["refactor", "docs", "test", "feat", "chore", "update", "clean", "initial"]
         rage_score = sum(1 for msg in commit_messages if any(w in msg for w in rage_words))
@@ -145,7 +144,6 @@ def analyze_user():
         collab_status = "Lone Wolf 🐺" if total_projects > 0 and (original_repos / total_projects) * 100 > 75 and pr_count < 5 else "Team Player 🤝" if total_projects > 0 else "Just Starting 🌱"
         bug_hunter_score = f"{int(sum(issue_resolution_times)/len(issue_resolution_times))} hrs" if issue_resolution_times else "N/A"
 
-        # NEW: AI-Powered Summary
         top_lang = sorted(langs.items(), key=lambda x: x[1], reverse=True)[0][0] if langs else "a variety of technologies"
         dev_name = user_data.get("name") or username
         ai_summary = f"✨ <b>System Analysis:</b> {dev_name} is recognized as a '{persona.split(' ', 1)[1]}' who primarily engineers solutions using {top_lang}. Displaying a '{collab_status.split(' ')[0]}' collaboration style, they maintain a portfolio of {len(all_repos)} recent projects, securing a total of {total_stars} stars."
