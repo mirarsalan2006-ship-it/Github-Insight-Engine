@@ -9,17 +9,24 @@ from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_talisman import Talisman
 from flask_cors import CORS
+from flask_caching import Cache # <-- NEW IMPORT
 
-load_dotenv()
 load_dotenv()
 app = Flask(__name__)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
+# SECURITY: Limit incoming payload size to 16KB
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
 
-# SECURITY: Trust the reverse proxy for accurate IP tracking (Crucial for Render)
+# PERFORMANCE: Initialize Simple In-Memory Cache
+app.config['CACHE_TYPE'] = 'SimpleCache'
+app.config['CACHE_DEFAULT_TIMEOUT'] = 900 # Cache results for 15 minutes (900 seconds)
+cache = Cache(app)
+
+# SECURITY: Trust the reverse proxy for accurate IP tracking
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
+# SECURITY: Strict Content Security Policy
 csp = {
     'default-src': ["'self'"],
     'script-src': [
@@ -44,17 +51,18 @@ csp = {
     ]
 }
 
+# Apply the strict browser rules (Removed the duplicate 'None' override)
 Talisman(app, content_security_policy=csp)
 
-Talisman(app, content_security_policy=None)
-
+# SECURITY: Enforce CORS
 ALLOWED_ORIGINS = [
-    "https://gits-viewer.onrender.com", 
+    "https://your-app-name.onrender.com", 
     "http://127.0.0.1:5000",
     "http://localhost:5000"
 ]
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
+# SECURITY: IP Rate Limiting
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
@@ -90,10 +98,10 @@ def get_heatmap_data(username):
 @limiter.limit("5 per second")
 def home():
     response = make_response(render_template('index.html'))
+    # Prevent CDN caching to ensure the rate limiter fires correctly
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
-    
     return response
 
 @app.route('/api/analyze', methods=['POST'])
@@ -102,8 +110,16 @@ def analyze_user():
     username = request.json.get('username')
     if not username: return jsonify({"error": "Username required"}), 400
 
+    # SECURITY: Validate and Sanitize Input
     if not re.match(r"^[a-zA-Z0-9-]{1,39}$", username):
         return jsonify({"error": "Invalid GitHub username format"}), 400
+
+    # PERFORMANCE: Check if we already looked up this user recently
+    cache_key = f"github_stats_{username.lower()}"
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        print(f"Serving {username} from cache.") # Server log to confirm it's working
+        return jsonify(cached_data)
 
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
     try:
@@ -216,7 +232,8 @@ def analyze_user():
                 else:
                     if current_streak > 0 or day != flattened_days[-1]: break
 
-        return jsonify({
+        # Compile the final data payload
+        final_payload = {
             "profile": {
                 "name": dev_name, "avatar": user_data.get("avatar_url"), "bio": user_data.get("bio") or "No bio available.",
                 "repos": user_data.get("public_repos", 0), "followers": user_data.get("followers", 0), "total_stars": total_stars,
@@ -225,11 +242,17 @@ def analyze_user():
             },
             "badges": badges, "recent_repos": all_repos, "organizations": orgs_data, "recent_activity": recent_activity, 
             "punchcard": punchcard_data, "languages": langs, "heatmap": heatmap
-        })
+        }
+
+        # PERFORMANCE: Store the compiled payload in the cache before sending to the user
+        cache.set(cache_key, final_payload)
+        
+        return jsonify(final_payload)
 
     except Exception as e:
         print(f"Internal Analytics Error: {str(e)}") 
         return jsonify({"error": "An unexpected server error occurred. Please try again later."}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    # SECURITY: Debug mode turned off for production
+    app.run(port=5000)
