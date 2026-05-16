@@ -7,17 +7,29 @@ from datetime import datetime
 from flask_limiter import Limiter
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_talisman import Talisman
+from flask_cors import CORS
 
 load_dotenv()
 app = Flask(__name__)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
-# SECURITY: Trust the reverse proxy for accurate IP tracking (Crucial for Render/Heroku)
+# SECURITY: Limit incoming payload size to 16KB to prevent memory exhaustion
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
+
+# SECURITY: Trust the reverse proxy for accurate IP tracking (Crucial for Render)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-# SECURITY: Add basic HTTP security headers 
-# (Note: content_security_policy is disabled here so it doesn't break your inline Vanta.js/Three.js scripts)
+# SECURITY: Add basic HTTP security headers
 Talisman(app, content_security_policy=None)
+
+# SECURITY: Enforce CORS to only allow your frontend to use the API
+# Replace 'your-app-name' with your actual Render project URL
+ALLOWED_ORIGINS = [
+    "https://gits-viewer.onrender.com", 
+    "http://127.0.0.1:5000",
+    "http://localhost:5000"
+]
+CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
 # Smart IP tracker that works locally AND on Render
 def get_real_ip():
@@ -52,7 +64,8 @@ def get_heatmap_data(username):
     """
     try:
         headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
-        res = requests.post("https://api.github.com/graphql", json={'query': query, 'variables': {"userName": username}}, headers=headers)
+        # SECURITY: Added timeout=10 to prevent server hangs
+        res = requests.post("https://api.github.com/graphql", json={'query': query, 'variables': {"userName": username}}, headers=headers, timeout=10)
         return res.json().get('data', {}).get('user', {}).get('contributionsCollection', {}).get('contributionCalendar')
     except:
         return None
@@ -74,17 +87,18 @@ def analyze_user():
 
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
     try:
-        user_res = requests.get(f"https://api.github.com/users/{username}", headers=headers)
+        # SECURITY: Added timeout=10 to all external calls
+        user_res = requests.get(f"https://api.github.com/users/{username}", headers=headers, timeout=10)
         if user_res.status_code != 200: return jsonify({"error": "User not found"}), 404
         user_data = user_res.json()
         
-        repo_res = requests.get(f"https://api.github.com/users/{username}/repos?sort=updated&per_page=100", headers=headers)
+        repo_res = requests.get(f"https://api.github.com/users/{username}/repos?sort=updated&per_page=100", headers=headers, timeout=10)
         repos_data = repo_res.json() if repo_res.status_code == 200 else []
 
-        org_res = requests.get(f"https://api.github.com/users/{username}/orgs", headers=headers)
+        org_res = requests.get(f"https://api.github.com/users/{username}/orgs", headers=headers, timeout=10)
         orgs_data = [{"login": o["login"], "avatar": o["avatar_url"]} for o in (org_res.json() if org_res.status_code == 200 else [])]
 
-        events_res = requests.get(f"https://api.github.com/users/{username}/events/public?per_page=100", headers=headers)
+        events_res = requests.get(f"https://api.github.com/users/{username}/events/public?per_page=100", headers=headers, timeout=10)
         events_data = events_res.json() if events_res.status_code == 200 else []
         
         recent_activity, punchcard_data, commit_messages = [], [], []
@@ -196,7 +210,7 @@ def analyze_user():
 
     except Exception as e:
         # SECURITY: Stop Leaking Internal Errors to the front end
-        print(f"Internal Analytics Error: {str(e)}") # This prints to your secure server logs
+        print(f"Internal Analytics Error: {str(e)}") 
         return jsonify({"error": "An unexpected server error occurred. Please try again later."}), 500
 
 if __name__ == '__main__':
