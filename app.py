@@ -1,13 +1,23 @@
 from flask import Flask, render_template, request, jsonify
 import requests
 import os
+import re
 from dotenv import load_dotenv
 from datetime import datetime
 from flask_limiter import Limiter
+from werkzeug.middleware.proxy_fix import ProxyFix
+from flask_talisman import Talisman
 
 load_dotenv()
 app = Flask(__name__)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+
+# SECURITY: Trust the reverse proxy for accurate IP tracking (Crucial for Render/Heroku)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+# SECURITY: Add basic HTTP security headers 
+# (Note: content_security_policy is disabled here so it doesn't break your inline Vanta.js/Three.js scripts)
+Talisman(app, content_security_policy=None)
 
 # Smart IP tracker that works locally AND on Render
 def get_real_ip():
@@ -24,7 +34,7 @@ limiter = Limiter(
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    return jsonify({"error": "Rate limit exceeded. You can only search 25 times per minute. Please chill for a bit!"}), 429
+    return jsonify({"error": "Rate limit exceeded. You can only pull 15 times per second. Please slow down!"}), 429
 
 def get_heatmap_data(username):
     if not GITHUB_TOKEN: return None
@@ -48,14 +58,19 @@ def get_heatmap_data(username):
         return None
 
 @app.route('/')
+@limiter.limit("5 per second") # Front-end rate limiter
 def home():
     return render_template('index.html')
 
 @app.route('/api/analyze', methods=['POST'])
-@limiter.limit("25 per minute")
+@limiter.limit("15 per second") # Strict API rate limiter
 def analyze_user():
     username = request.json.get('username')
     if not username: return jsonify({"error": "Username required"}), 400
+
+    # SECURITY: Validate and Sanitize Input (Blocks path traversal & malicious payloads)
+    if not re.match(r"^[a-zA-Z0-9-]{1,39}$", username):
+        return jsonify({"error": "Invalid GitHub username format"}), 400
 
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
     try:
@@ -180,7 +195,9 @@ def analyze_user():
         })
 
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        # SECURITY: Stop Leaking Internal Errors to the front end
+        print(f"Internal Analytics Error: {str(e)}") # This prints to your secure server logs
+        return jsonify({"error": "An unexpected server error occurred. Please try again later."}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
