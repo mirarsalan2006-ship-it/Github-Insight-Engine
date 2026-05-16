@@ -300,7 +300,16 @@
             window.history.pushState({}, '', '?user=' + username);
 
             try {
-                const response = await fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: username }) });
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        // SECURITY: This is your VIP pass. 
+                        // Ensure this matches your Render Environment Variable exactly.
+                        'X-API-Key': '08ea9329219f92c9260bf61839df41d6364d9b8d7fc4cd11e3b622953310924a'
+                    },
+                    body: JSON.stringify({ username: user })
+                });
                 const data = await response.json();
 
                 if (response.ok) {
