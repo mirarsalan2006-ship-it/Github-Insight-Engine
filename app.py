@@ -52,8 +52,8 @@ Talisman(
     force_https=(ENVIRONMENT == "production"),
     strict_transport_security=True,
     strict_transport_security_max_age=31536000, 
-    x_content_type_options=True,
-    x_frame_options='DENY',
+    content_type_options=True, # Fixed: removed the 'x_'
+    frame_options='DENY',      # Fixed: removed the 'x_'
     referrer_policy='strict-origin-when-cross-origin'
 )
 
