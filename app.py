@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, make_response
 import requests
 import os
 import re
+import logging
 from dotenv import load_dotenv
 from datetime import datetime
 from flask_limiter import Limiter
@@ -9,70 +10,65 @@ from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_talisman import Talisman
 from flask_cors import CORS
-from flask_caching import Cache # <-- NEW IMPORT
+from flask_caching import Cache
 
+# ---------------------------------------------------------
+# Configuration & Setup
+# ---------------------------------------------------------
 load_dotenv()
+
+# Replace print() with proper production logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
 # SECURITY: Limit incoming payload size to 16KB
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
 
-# PERFORMANCE: Initialize Simple In-Memory Cache
+# PERFORMANCE: Initialize Simple In-Memory Cache (900s = 15 mins)
 app.config['CACHE_TYPE'] = 'SimpleCache'
-app.config['CACHE_DEFAULT_TIMEOUT'] = 900 # Cache results for 15 minutes (900 seconds)
+app.config['CACHE_DEFAULT_TIMEOUT'] = 900 
 cache = Cache(app)
 
-# SECURITY: Trust the reverse proxy for accurate IP tracking
+# SECURITY: Trust the reverse proxy for accurate IP tracking (Render)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
 # SECURITY: Strict Content Security Policy
 csp = {
     'default-src': ["'self'"],
     'script-src': [
-        "'self'",
-        "'unsafe-inline'",
-        "https://cdnjs.cloudflare.com",
-        "https://cdn.jsdelivr.net"      
+        "'self'", "'unsafe-inline'",
+        "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"      
     ],
-    'style-src': [
-        "'self'",
-        "'unsafe-inline'" 
-    ],
-    'img-src': [
-        "'self'",
-        "data:",
-        "https://avatars.githubusercontent.com" 
-    ],
-    'connect-src': [
-        "'self'",
-        "https://api.github.com",
-        "https://cdn.jsdelivr.net"
-    ]
+    'style-src': ["'self'", "'unsafe-inline'"],
+    'img-src': ["'self'", "data:", "https://avatars.githubusercontent.com"],
+    'connect-src': ["'self'", "https://api.github.com", "https://cdn.jsdelivr.net"]
 }
-
-# Apply the strict browser rules (Removed the duplicate 'None' override)
 Talisman(app, content_security_policy=csp)
 
 # SECURITY: Enforce CORS
 ALLOWED_ORIGINS = [
-    "https://your-app-name.onrender.com", 
+    "https://gits-viewer.onrender.com", 
     "http://127.0.0.1:5000",
     "http://localhost:5000"
 ]
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
 # SECURITY: IP Rate Limiting
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    storage_uri="memory://"
-)
+limiter = Limiter(key_func=get_remote_address, app=app, storage_uri="memory://")
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    return jsonify({"error": "Rate limit exceeded. You can only pull 15 times per second. Please slow down!"}), 429
+    return jsonify({"error": "Rate limit exceeded. Please wait a minute and try again!"}), 429
 
+# ---------------------------------------------------------
+# Helper Functions
+# ---------------------------------------------------------
 def get_heatmap_data(username):
     if not GITHUB_TOKEN: return None
     query = """
@@ -90,41 +86,53 @@ def get_heatmap_data(username):
     try:
         headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
         res = requests.post("https://api.github.com/graphql", json={'query': query, 'variables': {"userName": username}}, headers=headers, timeout=10)
+        res.raise_for_status() # Ensure HTTP errors are caught
         return res.json().get('data', {}).get('user', {}).get('contributionsCollection', {}).get('contributionCalendar')
-    except:
+    # STABILITY: Catch explicit requests and parsing errors, not base exceptions
+    except (requests.RequestException, ValueError) as e:
+        logger.warning(f"Heatmap fetch failed for {username}: {str(e)}")
         return None
 
+# ---------------------------------------------------------
+# Routes
+# ---------------------------------------------------------
 @app.route('/')
-@limiter.limit("5 per second")
+@limiter.limit("30 per minute")
 def home():
     response = make_response(render_template('index.html'))
-    # Prevent CDN caching to ensure the rate limiter fires correctly
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
     return response
 
 @app.route('/api/analyze', methods=['POST'])
-@limiter.limit("15 per second")
+@limiter.limit("50 per minute")
 def analyze_user():
-    username = request.json.get('username')
-    if not username: return jsonify({"error": "Username required"}), 400
+    # STABILITY: Safely parse JSON to prevent crashes if Content-Type is missing/wrong
+    data = request.get_json(silent=True) or {}
+    username = data.get('username')
+    
+    if not username or not isinstance(username, str): 
+        return jsonify({"error": "Valid username required"}), 400
 
     # SECURITY: Validate and Sanitize Input
     if not re.match(r"^[a-zA-Z0-9-]{1,39}$", username):
         return jsonify({"error": "Invalid GitHub username format"}), 400
 
-    # PERFORMANCE: Check if we already looked up this user recently
     cache_key = f"github_stats_{username.lower()}"
     cached_data = cache.get(cache_key)
     if cached_data:
-        print(f"Serving {username} from cache.") # Server log to confirm it's working
+        logger.info(f"Cache hit for user: {username}")
         return jsonify(cached_data)
 
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
+    
     try:
+        # STABILITY: Guard all API calls against network failures and bad JSON
         user_res = requests.get(f"https://api.github.com/users/{username}", headers=headers, timeout=10)
-        if user_res.status_code != 200: return jsonify({"error": "User not found"}), 404
+        if user_res.status_code == 404: 
+            return jsonify({"error": "User not found"}), 404
+        user_res.raise_for_status()
         user_data = user_res.json()
         
         repo_res = requests.get(f"https://api.github.com/users/{username}/repos?sort=updated&per_page=100", headers=headers, timeout=10)
@@ -135,10 +143,23 @@ def analyze_user():
 
         events_res = requests.get(f"https://api.github.com/users/{username}/events/public?per_page=100", headers=headers, timeout=10)
         events_data = events_res.json() if events_res.status_code == 200 else []
-        
+
+    except requests.Timeout:
+        logger.error(f"GitHub API timeout for {username}")
+        return jsonify({"error": "GitHub API timeout. Please try again later."}), 504
+    except requests.ConnectionError:
+        logger.error(f"Connection failed when fetching {username}")
+        return jsonify({"error": "Connection to GitHub failed. Check network."}), 503
+    except ValueError:
+        logger.error(f"Invalid JSON returned from GitHub for {username}")
+        return jsonify({"error": "Invalid response from GitHub API."}), 502
+    except requests.RequestException as e:
+        logger.error(f"GitHub API Error for {username}: {str(e)}")
+        return jsonify({"error": "An error occurred while contacting GitHub."}), 502
+
+    try:
         recent_activity, punchcard_data, commit_messages = [], [], []
-        pr_count = 0
-        issue_resolution_times = []
+        pr_count, issue_resolution_times = 0, []
 
         for e in events_data:
             e_type = e.get("type")
@@ -164,16 +185,28 @@ def analyze_user():
                         issue_resolution_times.append(diff_hours)
 
             if len(recent_activity) < 8: 
-                repo_name = e.get("repo", {}).get("name", "Unknown Repo")
+                # STABILITY: Guard against missing repo names
+                repo_data = e.get("repo", {})
+                full_repo_name = repo_data.get("name") if isinstance(repo_data, dict) else "Unknown/Repo"
+                repo_short_name = full_repo_name.split('/')[-1] if full_repo_name and '/' in full_repo_name else "Unknown Repo"
+                
                 clean_date = dt.strftime("%b %d") if date_raw else ""
                 action, icon = "Interacted with", "📌"
+                
                 if e_type == "PushEvent": action, icon = "Pushed commits to", "🔥"
                 elif e_type == "PullRequestEvent": action, icon = "Opened a PR in", "🔄"
                 elif e_type == "IssuesEvent": action, icon = "Opened an issue in", "🐛"
                 elif e_type == "WatchEvent": action, icon = "Starred", "⭐"
                 elif e_type == "CreateEvent": action, icon = "Created", "🌱"
                 elif e_type == "ForkEvent": action, icon = "Forked", "🍴"
-                recent_activity.append({"action": action, "repo": repo_name.split('/')[-1], "full_repo": repo_name, "date": clean_date, "icon": icon})
+                
+                recent_activity.append({
+                    "action": action, 
+                    "repo": repo_short_name, 
+                    "full_repo": full_repo_name, 
+                    "date": clean_date, 
+                    "icon": icon
+                })
 
         langs, repos_by_year = {}, {}
         total_stars, original_repos, forked_repos = 0, 0, 0
@@ -185,7 +218,7 @@ def analyze_user():
             if lang: langs[lang] = langs.get(lang, 0) + 1
             
             created_at = r.get("created_at")
-            if created_at:
+            if created_at and isinstance(created_at, str):
                 year = created_at[:4]
                 repos_by_year[year] = repos_by_year.get(year, 0) + 1
 
@@ -193,24 +226,48 @@ def analyze_user():
             else: original_repos += 1
 
             all_repos.append({
-                "name": r["name"], "full_name": r["full_name"], "default_branch": r.get("default_branch", "main"), 
-                "url": r["html_url"], "stars": r["stargazers_count"], "lang": lang or "N/A",
-                "desc": r.get("description") or "No description provided.", "forks": r.get("forks_count", 0), "issues": r.get("open_issues_count", 0), "updated": r.get("updated_at") 
+                "name": r.get("name", "Unknown"), 
+                "full_name": r.get("full_name", "Unknown"), 
+                "default_branch": r.get("default_branch", "main"), 
+                "url": r.get("html_url", "#"), 
+                "stars": r.get("stargazers_count", 0), 
+                "lang": lang or "N/A",
+                "desc": r.get("description") or "No description provided.", 
+                "forks": r.get("forks_count", 0), 
+                "issues": r.get("open_issues_count", 0), 
+                "updated": r.get("updated_at", "") 
             })
 
         rage_words = ["fix", "bug", "hate", "fuck", "damn", "asdf", "finally", "stupid", "shit", "ugh", "wip"]
         zen_words = ["refactor", "docs", "test", "feat", "chore", "update", "clean", "initial"]
         rage_score = sum(1 for msg in commit_messages if any(w in msg for w in rage_words))
         zen_score = sum(1 for msg in commit_messages if any(w in msg for w in zen_words))
-        persona = "🤬 The Rage Coder" if rage_score > zen_score and rage_score > 2 else "🧘‍♂️ The Zen Master" if zen_score > rage_score else "👻 The Ghost Committer" if len(commit_messages) == 0 else "🥷 The Mysterious Builder"
+        
+        # SYNTAX FIX: Multi-line string assignments securely bracketed
+        persona = (
+            "🤬 The Rage Coder" if rage_score > zen_score and rage_score > 2 
+            else "🧘‍♂️ The Zen Master" if zen_score > rage_score 
+            else "👻 The Ghost Committer" if len(commit_messages) == 0 
+            else "🥷 The Mysterious Builder"
+        )
 
         total_projects = original_repos + forked_repos
-        collab_status = "Lone Wolf 🐺" if total_projects > 0 and (original_repos / total_projects) * 100 > 75 and pr_count < 5 else "Team Player 🤝" if total_projects > 0 else "Just Starting 🌱"
+        collab_status = (
+            "Lone Wolf 🐺" if total_projects > 0 and (original_repos / total_projects) * 100 > 75 and pr_count < 5 
+            else "Team Player 🤝" if total_projects > 0 
+            else "Just Starting 🌱"
+        )
+        
         bug_hunter_score = f"{int(sum(issue_resolution_times)/len(issue_resolution_times))} hrs" if issue_resolution_times else "N/A"
-
         top_lang = sorted(langs.items(), key=lambda x: x[1], reverse=True)[0][0] if langs else "a variety of technologies"
         dev_name = user_data.get("name") or username
-        ai_summary = f"✨ <b>System Analysis:</b> {dev_name} is recognized as a '{persona.split(' ', 1)[1]}' who primarily engineers solutions using {top_lang}. Displaying a '{collab_status.split(' ')[0]}' collaboration style, they maintain a portfolio of {len(all_repos)} recent projects, securing a total of {total_stars} stars."
+        
+        ai_summary = (
+            f"✨ <b>System Analysis:</b> {dev_name} is recognized as a '{persona.split(' ', 1)[-1]}' "
+            f"who primarily engineers solutions using {top_lang}. Displaying a '{collab_status.split(' ')[0]}' "
+            f"collaboration style, they maintain a portfolio of {len(all_repos)} recent projects, "
+            f"securing a total of {total_stars} stars."
+        )
 
         badges = []
         if total_stars >= 50: badges.append({"icon": "🌟", "title": "Star Catcher", "desc": "Earned over 50 repository stars"})
@@ -232,7 +289,6 @@ def analyze_user():
                 else:
                     if current_streak > 0 or day != flattened_days[-1]: break
 
-        # Compile the final data payload
         final_payload = {
             "profile": {
                 "name": dev_name, "avatar": user_data.get("avatar_url"), "bio": user_data.get("bio") or "No bio available.",
@@ -244,15 +300,15 @@ def analyze_user():
             "punchcard": punchcard_data, "languages": langs, "heatmap": heatmap
         }
 
-        # PERFORMANCE: Store the compiled payload in the cache before sending to the user
         cache.set(cache_key, final_payload)
+        logger.info(f"Successfully processed and cached data for: {username}")
         
         return jsonify(final_payload)
 
     except Exception as e:
-        print(f"Internal Analytics Error: {str(e)}") 
-        return jsonify({"error": "An unexpected server error occurred. Please try again later."}), 500
+        # Final catch-all for local processing logic errors, safe from leaking context
+        logger.error(f"Internal Processing Error for {username}: {str(e)}") 
+        return jsonify({"error": "An unexpected server error occurred while processing data."}), 500
 
 if __name__ == '__main__':
-    # SECURITY: Debug mode turned off for production
     app.run(port=5000)
