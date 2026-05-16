@@ -1,19 +1,20 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, make_response
 import requests
 import os
 import re
 from dotenv import load_dotenv
 from datetime import datetime
 from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address # <-- ADD THIS IMPORT
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_talisman import Talisman
 from flask_cors import CORS
 
 load_dotenv()
+load_dotenv()
 app = Flask(__name__)
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
-# SECURITY: Limit incoming payload size to 16KB to prevent memory exhaustion
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
 
 # SECURITY: Trust the reverse proxy for accurate IP tracking (Crucial for Render)
@@ -31,15 +32,9 @@ ALLOWED_ORIGINS = [
 ]
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
-# Smart IP tracker that works locally AND on Render
-def get_real_ip():
-    if request.headers.get("X-Forwarded-For"):
-        return request.headers.get("X-Forwarded-For").split(",")[0].strip()
-    return request.remote_addr
-
 # Initialize the Limiter
 limiter = Limiter(
-    key_func=get_real_ip,
+    key_func=get_remote_address,
     app=app,
     storage_uri="memory://"
 )
@@ -73,7 +68,16 @@ def get_heatmap_data(username):
 @app.route('/')
 @limiter.limit("5 per second") # Front-end rate limiter
 def home():
-    return render_template('index.html')
+    # Render the template into a response object
+    response = make_response(render_template('index.html'))
+    
+    # SECURITY: Tell Render's CDN absolutely NOT to cache this page.
+    # This forces all traffic to hit the Python server and pass through the rate limiter.
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    
+    return response
 
 @app.route('/api/analyze', methods=['POST'])
 @limiter.limit("15 per second") # Strict API rate limiter
@@ -81,13 +85,11 @@ def analyze_user():
     username = request.json.get('username')
     if not username: return jsonify({"error": "Username required"}), 400
 
-    # SECURITY: Validate and Sanitize Input (Blocks path traversal & malicious payloads)
     if not re.match(r"^[a-zA-Z0-9-]{1,39}$", username):
         return jsonify({"error": "Invalid GitHub username format"}), 400
 
     headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"} if GITHUB_TOKEN else {}
     try:
-        # SECURITY: Added timeout=10 to all external calls
         user_res = requests.get(f"https://api.github.com/users/{username}", headers=headers, timeout=10)
         if user_res.status_code != 200: return jsonify({"error": "User not found"}), 404
         user_data = user_res.json()
