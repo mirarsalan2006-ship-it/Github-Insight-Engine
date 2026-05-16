@@ -24,8 +24,8 @@ csp = {
     'default-src': ["'self'"],
     'script-src': [
         "'self'",
-        "'unsafe-inline'", 
-        "https://cdnjs.cloudflare.com", 
+        "'unsafe-inline'",
+        "https://cdnjs.cloudflare.com",
         "https://cdn.jsdelivr.net"      
     ],
     'style-src': [
@@ -39,7 +39,8 @@ csp = {
     ],
     'connect-src': [
         "'self'",
-        "https://api.github.com"
+        "https://api.github.com",
+        "https://cdn.jsdelivr.net"
     ]
 }
 
