@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request, jsonify, make_response
+from flask import Flask, render_template, request, jsonify, make_response, redirect
 import requests
 import os
 import re
 import logging
+import time
 from functools import wraps
 from dotenv import load_dotenv
 from datetime import datetime
@@ -27,6 +28,7 @@ GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
 API_KEY = os.getenv("API_KEY")
 
+# SECURITY: Input size limits
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
 app.config['CACHE_TYPE'] = 'SimpleCache'
 app.config['CACHE_DEFAULT_TIMEOUT'] = 900 
@@ -70,13 +72,28 @@ def get_rate_limit_key():
     ip = get_remote_address()
     return f"{ip}:{username}" if username else ip
 
-# Note: Using memory storage here. For multi-instance production, swap to Redis.
 limiter = Limiter(key_func=get_rate_limit_key, app=app, storage_uri="memory://")
+
+# ---------------------------------------------------------
+# Error Handlers & Middleware
+# ---------------------------------------------------------
+@app.before_request
+def enforce_https():
+    # SECURITY: Explicit HTTPS redirect for production
+    if ENVIRONMENT == "production" and not request.is_secure and request.headers.get('X-Forwarded-Proto', 'http') == 'http':
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
     logger.warning(f"RATE_LIMIT_EXCEEDED: {get_remote_address()}")
     return jsonify({"error": "Rate limit exceeded. Please wait a minute and try again!"}), 429
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    # SECURITY: Catch-all for unhandled exceptions, preventing stack trace leaks
+    logger.error(f"INTERNAL_SERVER_ERROR: {str(e)}")
+    return jsonify({"error": "An internal server error occurred."}), 500
 
 # ---------------------------------------------------------
 # Security & Utility Helpers
@@ -85,7 +102,8 @@ def require_auth(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         req_api_key = request.headers.get('X-API-Key')
-        if ENVIRONMENT == "production" and (not req_api_key or req_api_key != API_KEY):
+        # SECURITY: API Key enforced in ALL environments to prevent dev-mode bypasses
+        if not req_api_key or req_api_key != API_KEY:
             logger.warning(f"UNAUTHORIZED_ACCESS_ATTEMPT from {get_remote_address()}")
             return jsonify({"error": "Invalid or missing API key"}), 401
         return f(*args, **kwargs)
@@ -109,7 +127,7 @@ def safe_json_parse(response, default=None):
         return default
 
 def safe_parse_datetime(date_str):
-    if not date_str: return None
+    if not date_str or not isinstance(date_str, str): return None
     formats = ["%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S%z"]
     for fmt in formats:
         try:
@@ -141,6 +159,12 @@ def get_heatmap_data(username):
         res = requests.post("https://api.github.com/graphql", json={'query': query, 'variables': {"userName": username}}, headers=headers, timeout=10)
         res.raise_for_status()
         data = safe_json_parse(res, {})
+        
+        # SECURITY: GraphQL returns 200 OK even on errors. Check explicitly.
+        if data and data.get('errors'):
+            logger.error(f"GraphQL error for {username}: {data.get('errors')}")
+            return None
+            
         return data.get('data', {}).get('user', {}).get('contributionsCollection', {}).get('contributionCalendar')
     except requests.RequestException as e:
         logger.warning(f"Heatmap fetch failed for {username}: {str(e)} | Headers: {sanitize_headers(headers)}")
@@ -159,20 +183,25 @@ def home():
 @require_auth
 @limiter.limit("50 per minute")
 def analyze_user():
+    processing_start_time = time.time()
+    MAX_PROCESSING_TIME = 25 # Abort if local computation takes too long
+
     data = request.get_json(silent=True) or {}
     username = data.get('username')
     
     if not username or not isinstance(username, str): 
         return jsonify({"error": "Valid username required"}), 400
 
-    # SECURITY: Strict GitHub Username Validation
-    if not re.match(r"^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$", username):
+    # SECURITY: Strict GitHub Username Validation (Handles ReDoS & Bounds)
+    if len(username) > 39 or not re.match(r"^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$", username):
         logger.warning(f"INVALID_USERNAME_ATTEMPT: {username}")
         return jsonify({"error": "Invalid GitHub username format"}), 400
 
     cache_key = f"github_stats_{username.lower()}"
     cached_data = cache.get(cache_key)
-    if cached_data and cached_data.get("success", True):
+    
+    # SECURITY: Explicit `is True` check prevents cache poisoning from partial/failed data
+    if cached_data and cached_data.get("success") is True:
         logger.info(f"Cache hit for user: {username}")
         return jsonify(cached_data)
 
@@ -211,6 +240,10 @@ def analyze_user():
         pr_count, issue_resolution_times = 0, []
 
         for e in events_data:
+            # PERFORMANCE/SECURITY: Abort if looping takes too long
+            if time.time() - processing_start_time > MAX_PROCESSING_TIME:
+                raise TimeoutError("Data processing exceeded maximum time limit")
+
             if not isinstance(e, dict): continue
             e_type = e.get("type")
             dt = safe_parse_datetime(e.get("created_at"))
@@ -223,7 +256,7 @@ def analyze_user():
             
             if e_type == "PushEvent":
                 for c in payload.get("commits", []):
-                    if isinstance(c, dict) and "message" in c:
+                    if isinstance(c, dict) and "message" in c and isinstance(c["message"], str):
                         commit_messages.append(c["message"].lower())
             
             if e_type in ["PullRequestEvent", "IssuesEvent"]:
@@ -260,13 +293,18 @@ def analyze_user():
         all_repos = []
         
         for r in repos_data:
+            if time.time() - processing_start_time > MAX_PROCESSING_TIME:
+                raise TimeoutError("Data processing exceeded maximum time limit")
+
             if not isinstance(r, dict): continue
-            total_stars += r.get("stargazers_count", 0)
-            lang = r.get("language")
-            if lang: langs[lang] = langs.get(lang, 0) + 1
+            total_stars += r.get("stargazers_count", 0) if isinstance(r.get("stargazers_count"), int) else 0
             
+            lang = r.get("language")
+            if isinstance(lang, str): langs[lang] = langs.get(lang, 0) + 1
+            
+            # SECURITY: Type check created_at to prevent slicing crashes
             created_at = r.get("created_at")
-            if created_at and isinstance(created_at, str):
+            if created_at and isinstance(created_at, str) and len(created_at) >= 4:
                 year = created_at[:4]
                 repos_by_year[year] = repos_by_year.get(year, 0) + 1
 
@@ -276,9 +314,12 @@ def analyze_user():
             all_repos.append({
                 "name": r.get("name", "Unknown"), "full_name": r.get("full_name", "Unknown"), 
                 "default_branch": r.get("default_branch", "main"), "url": r.get("html_url", "#"), 
-                "stars": r.get("stargazers_count", 0), "lang": lang or "N/A",
-                "desc": r.get("description") or "No description provided.", "forks": r.get("forks_count", 0), 
-                "issues": r.get("open_issues_count", 0), "updated": r.get("updated_at", "") 
+                "stars": r.get("stargazers_count", 0) if isinstance(r.get("stargazers_count"), int) else 0, 
+                "lang": lang if isinstance(lang, str) else "N/A",
+                "desc": r.get("description") if isinstance(r.get("description"), str) else "No description provided.", 
+                "forks": r.get("forks_count", 0) if isinstance(r.get("forks_count"), int) else 0, 
+                "issues": r.get("open_issues_count", 0) if isinstance(r.get("open_issues_count"), int) else 0, 
+                "updated": r.get("updated_at", "") if isinstance(r.get("updated_at"), str) else ""
             })
 
         rage_words = ["fix", "bug", "hate", "fuck", "damn", "asdf", "finally", "stupid", "shit", "ugh", "wip"]
@@ -302,9 +343,9 @@ def analyze_user():
         
         bug_hunter_score = f"{int(sum(issue_resolution_times)/len(issue_resolution_times))} hrs" if issue_resolution_times else "N/A"
         top_lang = sorted(langs.items(), key=lambda x: x[1], reverse=True)[0][0] if langs else "a variety of technologies"
-        dev_name = user_data.get("name") or username
+        dev_name = user_data.get("name") if isinstance(user_data.get("name"), str) else username
         
-        # SECURITY: Markupsafe escape applied to all user-generated strings injected into HTML
+        # SECURITY: Markupsafe escape applied
         ai_summary = (
             f"✨ <b>System Analysis:</b> {escape(dev_name)} is recognized as a '{escape(persona.split(' ', 1)[-1])}' "
             f"who primarily engineers solutions using {escape(top_lang)}. Displaying a '{escape(collab_status.split(' ')[0])}' "
@@ -324,11 +365,11 @@ def analyze_user():
             flattened_days = [day for week in heatmap.get("weeks", []) for day in week.get("contributionDays", [])]
             temp_streak = 0
             for day in flattened_days:
-                if day.get("contributionCount", 0) > 0:
+                if isinstance(day, dict) and day.get("contributionCount", 0) > 0:
                     temp_streak += 1; longest_streak = max(longest_streak, temp_streak)
                 else: temp_streak = 0
             for day in reversed(flattened_days):
-                if day.get("contributionCount", 0) > 0: current_streak += 1
+                if isinstance(day, dict) and day.get("contributionCount", 0) > 0: current_streak += 1
                 else:
                     if current_streak > 0 or day != flattened_days[-1]: break
 
@@ -345,10 +386,13 @@ def analyze_user():
         }
 
         cache.set(cache_key, final_payload)
-        logger.info(f"Successfully processed and cached data for: {username}")
+        logger.info(f"Successfully processed and cached data for: {username} (Took {time.time() - processing_start_time:.2f}s)")
         
         return jsonify(final_payload)
 
+    except TimeoutError as e:
+        logger.error(f"Processing Timeout for {username}: {str(e)}")
+        return jsonify({"error": "Data processing took too long. The profile may be too large."}), 504
     except Exception as e:
         logger.error(f"Internal Processing Error for {username}: {str(e)}") 
         return jsonify({"error": "An unexpected server error occurred while processing data."}), 500
