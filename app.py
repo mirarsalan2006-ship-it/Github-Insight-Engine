@@ -5,7 +5,7 @@ import re
 from dotenv import load_dotenv
 from datetime import datetime
 from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address # <-- ADD THIS IMPORT
+from flask_limiter.util import get_remote_address
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_talisman import Talisman
 from flask_cors import CORS
@@ -20,11 +20,33 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024
 # SECURITY: Trust the reverse proxy for accurate IP tracking (Crucial for Render)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
-# SECURITY: Add basic HTTP security headers
+csp = {
+    'default-src': ["'self'"],
+    'script-src': [
+        "'self'",
+        "'unsafe-inline'", 
+        "https://cdnjs.cloudflare.com", 
+        "https://cdn.jsdelivr.net"      
+    ],
+    'style-src': [
+        "'self'",
+        "'unsafe-inline'" 
+    ],
+    'img-src': [
+        "'self'",
+        "data:",
+        "https://avatars.githubusercontent.com" 
+    ],
+    'connect-src': [
+        "'self'",
+        "https://api.github.com"
+    ]
+}
+
+Talisman(app, content_security_policy=csp)
+
 Talisman(app, content_security_policy=None)
 
-# SECURITY: Enforce CORS to only allow your frontend to use the API
-# Replace 'your-app-name' with your actual Render project URL
 ALLOWED_ORIGINS = [
     "https://gits-viewer.onrender.com", 
     "http://127.0.0.1:5000",
@@ -32,7 +54,6 @@ ALLOWED_ORIGINS = [
 ]
 CORS(app, resources={r"/api/*": {"origins": ALLOWED_ORIGINS}})
 
-# Initialize the Limiter
 limiter = Limiter(
     key_func=get_remote_address,
     app=app,
@@ -59,20 +80,15 @@ def get_heatmap_data(username):
     """
     try:
         headers = {"Authorization": f"Bearer {GITHUB_TOKEN}"}
-        # SECURITY: Added timeout=10 to prevent server hangs
         res = requests.post("https://api.github.com/graphql", json={'query': query, 'variables': {"userName": username}}, headers=headers, timeout=10)
         return res.json().get('data', {}).get('user', {}).get('contributionsCollection', {}).get('contributionCalendar')
     except:
         return None
 
 @app.route('/')
-@limiter.limit("5 per second") # Front-end rate limiter
+@limiter.limit("5 per second")
 def home():
-    # Render the template into a response object
     response = make_response(render_template('index.html'))
-    
-    # SECURITY: Tell Render's CDN absolutely NOT to cache this page.
-    # This forces all traffic to hit the Python server and pass through the rate limiter.
     response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
     response.headers['Pragma'] = 'no-cache'
     response.headers['Expires'] = '0'
@@ -80,7 +96,7 @@ def home():
     return response
 
 @app.route('/api/analyze', methods=['POST'])
-@limiter.limit("15 per second") # Strict API rate limiter
+@limiter.limit("15 per second")
 def analyze_user():
     username = request.json.get('username')
     if not username: return jsonify({"error": "Username required"}), 400
@@ -211,7 +227,6 @@ def analyze_user():
         })
 
     except Exception as e:
-        # SECURITY: Stop Leaking Internal Errors to the front end
         print(f"Internal Analytics Error: {str(e)}") 
         return jsonify({"error": "An unexpected server error occurred. Please try again later."}), 500
 
