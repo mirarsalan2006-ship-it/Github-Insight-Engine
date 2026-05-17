@@ -9,12 +9,12 @@
     <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #c9d1d9; overflow: hidden; }
         #vanta-bg { position: fixed; z-index: -1; top: 0; left: 0; width: 100%; height: 100%; }
 
-        /* NEW: Cinematic Black Curtain */
         #black-curtain {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #000000; z-index: 10000; pointer-events: none;
@@ -25,15 +25,12 @@
             100% { opacity: 0; visibility: hidden; }
         }
 
-        /* UPGRADED: Landing Page CSS with Fade-In Animation */
         .landing-container {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 600px; padding: 60px 40px; text-align: center;
             background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.8);
             z-index: 100; transition: opacity 0.6s ease, transform 0.6s ease;
-            
-            /* Start invisible and animate in */
             opacity: 0; 
             animation: landingFadeIn 1.5s ease-out 0.8s forwards;
         }
@@ -103,7 +100,6 @@
         .repo-link { color: #58a6ff; font-weight: bold; font-size: 15px; margin-bottom: 4px; }
         .repo-meta { color: #8b949e; font-size: 12px; }
 
-        /* Modals and Overlays */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d1117; padding: 30px; border-radius: 15px; width: 700px; max-height: 85vh; border: 1px solid #30363d; text-align: left; position: relative; box-shadow: 0 15px 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; }
         .close-btn { position: absolute; top: 15px; right: 20px; color: #8b949e; font-size: 24px; cursor: pointer; text-decoration: none; transition: 0.2s; }
@@ -114,17 +110,14 @@
         #modal-readme code { background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; }
         #modal-readme pre { background: #161b22; padding: 10px; border-radius: 8px; overflow-x: auto; }
 
-        /* Hacker Terminal */
         #terminal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; z-index: 9999; padding: 40px; box-sizing: border-box; overflow-y: auto; }
         .term-line { margin: 5px 0; font-size: 16px; opacity: 0; }
         .term-cursor { display: inline-block; width: 10px; height: 18px; background: #0f0; animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
 
-        /* Time Machine / Wrapped Overlay */
         #wrapped-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #FF7B72, #D2A8FF); z-index: 9999; justify-content: center; align-items: center; text-align: center; color: white; flex-direction: column; }
         .wrapped-slide { font-size: 40px; font-weight: bold; opacity: 0; position: absolute; transition: opacity 1s ease-in-out; text-shadow: 0 4px 15px rgba(0,0,0,0.4); padding: 0 20px;}
 
-        /* Mobile Responsiveness */
         @media (max-width: 950px) {
             .landing-container { width: 90%; padding: 40px 20px; }
             .container { width: 95vw; height: 95vh; padding: 20px; }
@@ -292,23 +285,25 @@
             const username = document.getElementById('username').value;
             if(!username) return;
             
-            // UPDATED: Grab the specific button by ID and change text to Analyzing
             const btn = document.getElementById('analyze-btn'); 
             btn.innerText = "Analyzing..."; 
             btn.disabled = true;
             
-            window.history.pushState({}, '', '?user=' + username);
+            // FIXED: Secure URL parameter building
+            const params = new URLSearchParams();
+            params.set('user', username);
+            window.history.pushState({}, '', '?' + params.toString());
 
             try {
-                    const response = await fetch('/api/analyze', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-API-Key': '08ea9329219f92c9260bf61839df41d6364d9b8d7fc4cd11e3b622953310924a'
-                                },
-                    // BUG FIX: Change 'user' to 'username'
-                    body: JSON.stringify({ username: username }) 
-            });
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                        // FIXED: API Key removed from frontend
+                    },
+                    // FIXED: Using defined username variable
+                    body: JSON.stringify({ username: username })
+                });
                 const data = await response.json();
 
                 if (response.ok) {
@@ -323,39 +318,53 @@
                     document.getElementById('term-btn').style.display = "inline-block";
                     document.getElementById('wrap-btn').style.display = "inline-block";
                     
+                    // FIXED: Sanitize HTML from backend (handles the <b> tags in your python code safely)
                     document.getElementById('ai-summary-container').style.display = "block";
-                    document.getElementById('ai-summary-container').innerHTML = data.profile.ai_summary;
+                    document.getElementById('ai-summary-container').innerHTML = DOMPurify.sanitize(data.profile.ai_summary);
 
-                    document.getElementById('avatar').src = data.profile.avatar;
-                    document.getElementById('name').innerText = data.profile.name;
-                    document.getElementById('bio').innerText = data.profile.bio;
-                    document.getElementById('repos').innerText = data.profile.repos;
-                    document.getElementById('followers').innerText = data.profile.followers;
-                    document.getElementById('stars').innerText = data.profile.total_stars;
-                    document.getElementById('current-streak').innerText = data.profile.current_streak + ' 🔥';
-                    document.getElementById('longest-streak').innerText = data.profile.longest_streak + ' 🏆';
-                    document.getElementById('bug-hunter').innerText = data.profile.bug_hunter;
-                    document.getElementById('persona').innerText = data.profile.persona;
+                    document.getElementById('avatar').src = DOMPurify.sanitize(data.profile.avatar);
+                    document.getElementById('name').textContent = data.profile.name;
+                    document.getElementById('bio').textContent = data.profile.bio;
+                    document.getElementById('repos').textContent = data.profile.repos;
+                    document.getElementById('followers').textContent = data.profile.followers;
+                    document.getElementById('stars').textContent = data.profile.total_stars;
+                    document.getElementById('current-streak').textContent = data.profile.current_streak + ' 🔥';
+                    document.getElementById('longest-streak').textContent = data.profile.longest_streak + ' 🏆';
+                    document.getElementById('bug-hunter').textContent = data.profile.bug_hunter;
+                    document.getElementById('persona').textContent = data.profile.persona;
 
+                    // FIXED: Safe HTML injection for Organizations
                     const orgsContainer = document.getElementById('orgs-container'); orgsContainer.innerHTML = '';
-                    if (data.organizations) data.organizations.forEach(org => orgsContainer.innerHTML += `<img src="${org.avatar}" title="${org.login}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #30363d;">`);
+                    if (data.organizations) {
+                        let orgsHTML = '';
+                        data.organizations.forEach(org => orgsHTML += `<img src="${DOMPurify.sanitize(org.avatar)}" title="${DOMPurify.sanitize(org.login)}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #30363d;">`);
+                        orgsContainer.innerHTML = orgsHTML;
+                    }
 
+                    // FIXED: Safe HTML injection for Badges
                     const badgesContainer = document.getElementById('badges-container'); badgesContainer.innerHTML = '';
-                    if (data.badges) data.badges.forEach(b => badgesContainer.innerHTML += `<span class="badge" title="${b.desc}">${b.icon} ${b.title}</span>`);
+                    if (data.badges) {
+                        let badgesHTML = '';
+                        data.badges.forEach(b => badgesHTML += `<span class="badge" title="${DOMPurify.sanitize(b.desc)}">${DOMPurify.sanitize(b.icon)} ${DOMPurify.sanitize(b.title)}</span>`);
+                        badgesContainer.innerHTML = badgesHTML;
+                    }
 
                     document.getElementById('repo-search').value = ''; document.getElementById('repo-sort').value = 'recent'; renderRepos();
 
+                    // FIXED: Safe HTML injection for Activity List
                     const activityList = document.getElementById('activity-list'); activityList.innerHTML = '';
                     if (data.recent_activity && data.recent_activity.length > 0) {
+                        let activityHTML = '';
                         data.recent_activity.forEach(activity => {
-                            activityList.innerHTML += `
+                            activityHTML += `
                                 <div style="font-size: 13px; line-height: 1.4; border-left: 2px solid #30363d; padding-left: 10px; position: relative;">
-                                    <span style="position: absolute; left: -10px; top: -2px; background: #0d1117; font-size: 12px;">${activity.icon}</span>
-                                    <span style="color: #8b949e;">${activity.date}</span><br>
-                                    <span style="color: #c9d1d9;">${activity.action}</span> <a href="https://github.com/${activity.full_repo}" target="_blank" style="color: #58a6ff; text-decoration: none; font-weight: bold;">${activity.repo}</a>
+                                    <span style="position: absolute; left: -10px; top: -2px; background: #0d1117; font-size: 12px;">${DOMPurify.sanitize(activity.icon)}</span>
+                                    <span style="color: #8b949e;">${DOMPurify.sanitize(activity.date)}</span><br>
+                                    <span style="color: #c9d1d9;">${DOMPurify.sanitize(activity.action)}</span> <a href="https://github.com/${DOMPurify.sanitize(activity.full_repo)}" target="_blank" style="color: #58a6ff; text-decoration: none; font-weight: bold;">${DOMPurify.sanitize(activity.repo)}</a>
                                 </div>`;
                         });
-                    } else activityList.innerHTML = '<p style="color:#8b949e;">No recent public activity.</p>';
+                        activityList.innerHTML = activityHTML;
+                    } else activityList.textContent = 'No recent public activity.';
 
                     Chart.defaults.color = '#8b949e';
                     if (langChartInstance) langChartInstance.destroy();
@@ -380,7 +389,7 @@
                         data.heatmap.weeks.forEach(week => {
                             const weekDiv = document.createElement('div'); weekDiv.className = 'week';
                             week.contributionDays.forEach(day => {
-                                const dayDiv = document.createElement('div'); dayDiv.className = 'day'; dayDiv.style.backgroundColor = day.color; dayDiv.title = `${day.contributionCount} on ${day.date}`; weekDiv.appendChild(dayDiv);
+                                const dayDiv = document.createElement('div'); dayDiv.className = 'day'; dayDiv.style.backgroundColor = DOMPurify.sanitize(day.color); dayDiv.title = `${DOMPurify.sanitize(day.contributionCount.toString())} on ${DOMPurify.sanitize(day.date)}`; weekDiv.appendChild(dayDiv);
                             });
                             heatmapEl.appendChild(weekDiv);
                         });
@@ -403,20 +412,24 @@
             repoList.innerHTML = '';
             if (filtered.length === 0) { repoList.innerHTML = '<p style="color:#8b949e; text-align:center;">No repositories found.</p>'; return; }
 
+            // FIXED: Safe rendering for repo list elements
+            let repoHTML = '';
             filtered.forEach(repo => {
-                repoList.innerHTML += `<div class="repo-item" onclick="openModal(${globalRepoData.indexOf(repo)})"><div><div class="repo-link">${repo.name}</div><div class="repo-meta">💻 ${repo.lang}</div></div><div class="repo-meta" style="color: #e3b341; font-weight: bold;">⭐ ${repo.stars}</div></div>`;
+                repoHTML += `<div class="repo-item" onclick="openModal(${globalRepoData.indexOf(repo)})"><div><div class="repo-link">${DOMPurify.sanitize(repo.name)}</div><div class="repo-meta">💻 ${DOMPurify.sanitize(repo.lang)}</div></div><div class="repo-meta" style="color: #e3b341; font-weight: bold;">⭐ ${DOMPurify.sanitize(repo.stars.toString())}</div></div>`;
             });
+            repoList.innerHTML = repoHTML;
         }
 
         async function openModal(index) {
             const repo = globalRepoData[index];
-            document.getElementById('modal-title').innerText = repo.name; document.getElementById('modal-desc').innerText = repo.desc; document.getElementById('modal-stars').innerText = repo.stars; document.getElementById('modal-forks').innerText = repo.forks; document.getElementById('modal-issues').innerText = repo.issues; document.getElementById('modal-link').onclick = () => window.open(repo.url, '_blank');
+            document.getElementById('modal-title').textContent = repo.name; document.getElementById('modal-desc').textContent = repo.desc; document.getElementById('modal-stars').textContent = repo.stars; document.getElementById('modal-forks').textContent = repo.forks; document.getElementById('modal-issues').textContent = repo.issues; document.getElementById('modal-link').onclick = () => window.open(repo.url, '_blank');
             document.getElementById('repoModal').style.display = 'flex';
             
             const readmeDiv = document.getElementById('modal-readme'); readmeDiv.innerHTML = '<p style="color:#58a6ff;">Fetching documentation...</p>';
             try {
                 const res = await fetch(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/README.md`);
-                if (res.ok) { const text = await res.text(); readmeDiv.innerHTML = marked.parse(text); } 
+                // FIXED: DOMPurify securing marked.parse
+                if (res.ok) { const text = await res.text(); readmeDiv.innerHTML = DOMPurify.sanitize(marked.parse(text)); } 
                 else readmeDiv.innerHTML = '<p style="color:#8b949e;">No README available.</p>';
             } catch (err) { readmeDiv.innerHTML = '<p style="color:#ff7b72;">Error loading documentation.</p>'; }
         }
@@ -450,7 +463,7 @@
             let i = 0;
             function showSlide() {
                 if(i < slides.length) {
-                    wrapContent.innerHTML = `<div class="wrapped-slide">${slides[i]}</div>`;
+                    wrapContent.innerHTML = `<div class="wrapped-slide">${DOMPurify.sanitize(slides[i])}</div>`;
                     const slideEl = wrapContent.querySelector('.wrapped-slide');
                     setTimeout(() => slideEl.style.opacity = 1, 100);
                     setTimeout(() => { slideEl.style.opacity = 0; i++; setTimeout(showSlide, 1000); }, 3500);
