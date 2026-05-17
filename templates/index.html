@@ -6,13 +6,12 @@
     <title>GitHub Insight Engine</title>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <style>
-        /* (Your existing CSS remains exactly the same) */
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #c9d1d9; overflow: hidden; }
         #vanta-bg { position: fixed; z-index: -1; top: 0; left: 0; width: 100%; height: 100%; }
         #black-curtain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 10000; pointer-events: none; animation: curtainFade 1.5s ease-out 0.3s forwards; }
@@ -94,7 +93,7 @@
         
         <div class="header-actions">
             <div class="search-box">
-                <input type="text" id="username" placeholder="Search a username...">
+                <input type="text" id="username" placeholder="Search a username..." maxlength="39">
                 <button id="analyze-btn">Analyze</button>
                 <button id="term-btn" style="display:none; background-color: #000; border: 1px solid #0f0; color: #0f0;">💻 Terminal</button>
                 <button id="wrap-btn" class="btn-outline" style="display:none;">🕰️ Wrapped</button>
@@ -191,7 +190,7 @@
         // Initialize Vanta Background
         VANTA.NET({ el: "#vanta-bg", mouseControls: true, touchControls: true, color: 0x58a6ff, backgroundColor: 0x010409, points: 15.0, maxDistance: 25.0, spacing: 20.0 });
         
-        // POINT 10: IIFE to protect variables from the global window scope
+        // IIFE Enclosure to protect data scope
         (function() {
             let langChartInstance = null; 
             let starChartInstance = null; 
@@ -199,9 +198,29 @@
             let punchChartInstance = null;
             let globalRepoData = []; 
             let wrappedData = {}; 
+            
+            // Global tracker for event delegation
+            let currentModalRepoFullname = '';
+
+            // Secure fetch wrapper (Timeout + Max Size)
+            const fetchWithTimeout = async (url, timeout = 5000, maxSize = 100000) => {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const res = await fetch(url, { signal: controller.signal });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    
+                    const blob = await res.blob();
+                    if (blob.size > maxSize) throw new Error('Response exceeds maximum allowed size.');
+                    
+                    return await blob.text();
+                } finally {
+                    clearTimeout(timer);
+                }
+            };
 
             document.addEventListener('DOMContentLoaded', () => {
-                // Attach all event listeners (Fixing Point 7 - Inline Handlers)
+                // Event Listeners Initialization
                 document.getElementById('init-btn').addEventListener('click', launchEngine);
                 document.getElementById('analyze-btn').addEventListener('click', analyzeProfile);
                 document.getElementById('username').addEventListener('keypress', (e) => { if(e.key === 'Enter') analyzeProfile(); });
@@ -224,7 +243,16 @@
                 document.getElementById('close-modal-btn').addEventListener('click', closeModal);
                 document.getElementById('modal-inner').addEventListener('click', (e) => e.stopPropagation());
 
-                // POINT 2: Sanitize URL Parameters on load
+                // Event Delegation for Modal Link
+                document.addEventListener('click', function(e) {
+                    if (e.target && e.target.id === 'modal-link') {
+                        if (currentModalRepoFullname) {
+                            window.open(`https://github.com/${currentModalRepoFullname}`, '_blank');
+                        }
+                    }
+                });
+
+                // URL Parameter Processing
                 const params = new URLSearchParams(window.location.search);
                 if(params.has('user')) { 
                     const safeUser = DOMPurify.sanitize(params.get('user'));
@@ -246,13 +274,12 @@
             }
 
             async function analyzeProfile() {
-                // POINT 8: Safe Input & Regex Pre-Validation
                 const rawInput = document.getElementById('username').value.trim();
                 const username = DOMPurify.sanitize(rawInput);
                 
                 if (!username) return;
                 
-                if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$/.test(username)) {
+                if (username.length > 39 || !/^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$/.test(username)) {
                     alert('Invalid GitHub username format.');
                     return;
                 }
@@ -265,13 +292,11 @@
                 params.set('user', username);
                 window.history.pushState({}, '', '?' + params.toString());
 
-                // POINT 5 & 9: Robust Error Boundaries
                 try {
                     const response = await fetch('/api/analyze', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json'
-                            // Note: X-API-Key removed for security. Backend MUST have @require_auth removed.
                         },
                         body: JSON.stringify({ username: username })
                     });
@@ -307,7 +332,6 @@
                     document.getElementById('bug-hunter').textContent = data.profile.bug_hunter;
                     document.getElementById('persona').textContent = data.profile.persona;
 
-                    // POINT 3: Comprehensive DOMPurify usage for concatenated strings
                     const orgsContainer = document.getElementById('orgs-container'); 
                     orgsContainer.innerHTML = '';
                     if (data.organizations) {
@@ -351,7 +375,6 @@
                         activityList.textContent = 'No recent public activity.';
                     }
 
-                    // Render Charts (Data handling for Chart.js is inherently safe from XSS as it draws to canvas)
                     Chart.defaults.color = '#8b949e';
                     if (langChartInstance) langChartInstance.destroy();
                     langChartInstance = new Chart(document.getElementById('langChart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(data.languages), datasets: [{ data: Object.values(data.languages), backgroundColor: ['#ff7b72', '#79c0ff', '#d2a8ff', '#a5d6ff', '#f0e68c', '#98fb98', '#ff9900'], borderWidth: 0 }] }, options: { plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10 } } }, cutout: '65%' } });
@@ -370,15 +393,20 @@
                     punchChartInstance = new Chart(document.getElementById('punchChart').getContext('2d'), { type: 'bubble', data: { datasets: [{ label: 'Commits', data: bubbleData, backgroundColor: 'rgba(88, 166, 255, 0.6)', borderColor: '#58a6ff' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { min: -0.5, max: 6.5, reverse: true, ticks: { callback: val => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][val], color: '#8b949e', font: {size: 10} }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { min: -1, max: 24, ticks: { callback: val => val+':00', stepSize: 4, color: '#8b949e', font: {size: 10} }, grid: { display: false } } } } });
 
                     const heatmapEl = document.getElementById('heatmap'); heatmapEl.innerHTML = ''; 
-                    if (data.heatmap) {
-                        document.getElementById('heatmap-title').textContent = `Contributions (${data.heatmap.totalContributions} in the last year)`;
+                    // Safe Traversal for Heatmap Arrays
+                    if (data.heatmap && Array.isArray(data.heatmap.weeks)) {
+                        document.getElementById('heatmap-title').textContent = `Contributions (${data.heatmap.totalContributions || 0} in the last year)`;
                         data.heatmap.weeks.forEach(week => {
-                            const weekDiv = document.createElement('div'); weekDiv.className = 'week';
+                            if (!Array.isArray(week.contributionDays)) return;
+                            const weekDiv = document.createElement('div'); 
+                            weekDiv.className = 'week';
+                            
                             week.contributionDays.forEach(day => {
+                                if (!day || !day.color) return;
                                 const dayDiv = document.createElement('div'); 
                                 dayDiv.className = 'day'; 
                                 dayDiv.style.backgroundColor = DOMPurify.sanitize(day.color); 
-                                dayDiv.title = `${DOMPurify.sanitize(day.contributionCount.toString())} on ${DOMPurify.sanitize(day.date)}`; 
+                                dayDiv.title = `${DOMPurify.sanitize((day.contributionCount || 0).toString())} on ${DOMPurify.sanitize(day.date || '')}`; 
                                 weekDiv.appendChild(dayDiv);
                             });
                             heatmapEl.appendChild(weekDiv);
@@ -423,41 +451,42 @@
 
             async function openModal(index) {
                 const repo = globalRepoData[index];
+                
+                // Track current repo for event delegation mapping
+                currentModalRepoFullname = repo.full_name;
+
                 document.getElementById('modal-title').textContent = repo.name; 
                 document.getElementById('modal-desc').textContent = repo.desc; 
                 document.getElementById('modal-stars').textContent = repo.stars; 
                 document.getElementById('modal-forks').textContent = repo.forks; 
                 document.getElementById('modal-issues').textContent = repo.issues; 
                 
-                // POINT 6: Modal Link Handler Fixed
-                const modalLinkBtn = document.getElementById('modal-link');
-                // Remove previous listeners to prevent multiple tabs opening
-                const newBtn = modalLinkBtn.cloneNode(true);
-                modalLinkBtn.parentNode.replaceChild(newBtn, modalLinkBtn);
-                newBtn.addEventListener('click', () => {
-                    window.open(`https://github.com/${repo.full_name}`, '_blank');
-                });
-                
                 document.getElementById('repoModal').style.display = 'flex';
                 
                 const readmeDiv = document.getElementById('modal-readme'); 
                 readmeDiv.innerHTML = '<p style="color:#58a6ff;">Fetching documentation...</p>';
+                
                 try {
-                    const res = await fetch(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/README.md`);
-                    if (res.ok) { 
-                        const text = await res.text(); 
-                        readmeDiv.innerHTML = DOMPurify.sanitize(marked.parse(text)); 
-                    } else {
-                        readmeDiv.innerHTML = '<p style="color:#8b949e;">No README available.</p>';
-                    }
+                    const markdownText = await fetchWithTimeout(
+                        `https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/README.md`
+                    );
+                    
+                    // Strict DOMPurify Configuration
+                    const cleanHTML = DOMPurify.sanitize(marked.parse(markdownText), {
+                        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'code', 'pre', 'p', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'blockquote', 'img', 'br', 'span', 'div'],
+                        ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class']
+                    });
+                    
+                    readmeDiv.innerHTML = cleanHTML;
                 } catch (err) { 
-                    readmeDiv.innerHTML = '<p style="color:#ff7b72;">Error loading documentation.</p>'; 
+                    readmeDiv.innerHTML = `<p style="color:#ff7b72;">Failed to load documentation: ${err.message}</p>`; 
                 }
             }
 
             function closeModal(event) { 
                 if (event) event.preventDefault(); 
                 document.getElementById('repoModal').style.display = 'none'; 
+                currentModalRepoFullname = ''; // Reset tracker
             }
 
             function copyShareLink() { 
