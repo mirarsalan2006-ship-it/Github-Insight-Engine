@@ -50,10 +50,15 @@
         .week { display: flex; flex-direction: column; gap: 3px; }
         .day { width: 11px; height: 11px; border-radius: 2px; background-color: #161b22; }
         .bottom-split { display: none; justify-content: space-between; gap: 20px; text-align: left; }
-        .chart-container, .activity-section { width: 30%; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); max-height: 500px; overflow-y: auto; }
+        
+        /* Updated chart-container CSS to ensure proper scrolling */
+        .chart-container, .activity-section { width: 30%; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); max-height: 500px; }
+        .activity-section { overflow-y: auto; }
+        
         .repo-section { width: 40%; max-height: 500px; overflow-y: auto; padding-right: 5px; }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
+        ::-webkit-scrollbar { width: 4px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+        
         .repo-item { background: rgba(255, 255, 255, 0.03); padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
         .repo-item:hover { background: rgba(255, 255, 255, 0.08); border-color: #58a6ff;}
         .repo-link { color: #58a6ff; font-weight: bold; font-size: 15px; margin-bottom: 4px; }
@@ -128,19 +133,20 @@
         </div>
 
         <div id="bottom-split" class="bottom-split">
-            <div class="chart-container">
-                <h3 style="margin-top:0; font-size:16px;">Domain Expertise</h3>
-<div style="width: 100%; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px;">
-    <div style="min-width: 400px; height: 180px;">
-        <canvas id="radarChart"></canvas>
-    </div>
-</div>
-                <h3 style="margin-top:0; font-size:16px;">Top Languages</h3>
-                <canvas id="langChart" style="max-height: 160px; margin-bottom: 20px;"></canvas>
-                <h3 style="margin-top:0; font-size:16px;">Most Starred</h3>
-                <canvas id="starChart" style="max-height: 160px; margin-bottom: 20px;"></canvas>
-                <h3 style="margin-top:0; font-size:16px;">Work Habits (90 Days)</h3>
-                <canvas id="punchChart" style="max-height: 180px;"></canvas>
+            <div class="chart-container" style="overflow-x: auto; overflow-y: hidden;">
+                <div style="min-width: 500px; padding-bottom: 15px; padding-right: 15px;">
+                    <h3 style="margin-top:0; font-size:16px;">Domain Expertise</h3>
+                    <div style="height: 180px; margin-bottom: 20px;"><canvas id="radarChart"></canvas></div>
+                    
+                    <h3 style="margin-top:0; font-size:16px;">Top Languages</h3>
+                    <div style="height: 160px; margin-bottom: 20px;"><canvas id="langChart"></canvas></div>
+                    
+                    <h3 style="margin-top:0; font-size:16px;">Most Starred</h3>
+                    <div style="height: 160px; margin-bottom: 20px;"><canvas id="starChart"></canvas></div>
+                    
+                    <h3 style="margin-top:0; font-size:16px;">Work Habits (90 Days)</h3>
+                    <div style="height: 180px;"><canvas id="punchChart"></canvas></div>
+                </div>
             </div>
             
             <div class="repo-section">
@@ -379,47 +385,40 @@
                         activityList.textContent = 'No recent public activity.';
                     }
 
+                    // UPDATED: Chart rendering with maintainAspectRatio: false for the new unified scrollable layout
                     Chart.defaults.color = '#8b949e';
+                    
                     if (langChartInstance) langChartInstance.destroy();
-                    langChartInstance = new Chart(document.getElementById('langChart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(data.languages), datasets: [{ data: Object.values(data.languages), backgroundColor: ['#ff7b72', '#79c0ff', '#d2a8ff', '#a5d6ff', '#f0e68c', '#98fb98', '#ff9900'], borderWidth: 0 }] }, options: { plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10 } } }, cutout: '65%' } });
+                    langChartInstance = new Chart(document.getElementById('langChart').getContext('2d'), { 
+                        type: 'doughnut', 
+                        data: { labels: Object.keys(data.languages), datasets: [{ data: Object.values(data.languages), backgroundColor: ['#ff7b72', '#79c0ff', '#d2a8ff', '#a5d6ff', '#f0e68c', '#98fb98', '#ff9900'], borderWidth: 0 }] }, 
+                        options: { maintainAspectRatio: false, plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10 } } }, cutout: '65%' } 
+                    });
 
                     if (starChartInstance) starChartInstance.destroy();
                     const topStarred = [...data.recent_repos].sort((a, b) => b.stars - a.stars).slice(0, 5);
-                    starChartInstance = new Chart(document.getElementById('starChart').getContext('2d'), { type: 'bar', data: { labels: topStarred.map(r => r.name.length > 10 ? r.name.substring(0,10) + '...' : r.name), datasets: [{ label: 'Stars', data: topStarred.map(r => r.stars), backgroundColor: '#e3b341', borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } } });
+                    starChartInstance = new Chart(document.getElementById('starChart').getContext('2d'), { 
+                        type: 'bar', 
+                        data: { labels: topStarred.map(r => r.name.length > 10 ? r.name.substring(0,10) + '...' : r.name), datasets: [{ label: 'Stars', data: topStarred.map(r => r.stars), backgroundColor: '#e3b341', borderRadius: 4 }] }, 
+                        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } } 
+                    });
 
                     if (radarChartInstance) radarChartInstance.destroy();
-                        const top6 = Object.entries(data.languages).sort((a,b) => b[1]-a[1]).slice(0,6);
-                        radarChartInstance = new Chart(document.getElementById('radarChart').getContext('2d'), { 
-                            type: 'radar', 
-                            data: { 
-                                labels: top6.map(l => l[0]), 
-                                datasets: [{ 
-                                    label: 'Projects', 
-                                    data: top6.map(l => l[1]), 
-                                    backgroundColor: 'rgba(88, 166, 255, 0.4)', 
-                                    borderColor: '#58a6ff', 
-                                    pointBackgroundColor: '#fff', 
-                                    borderWidth: 1 
-                                }] 
-                            }, 
-                            options: { 
-                                maintainAspectRatio: false, // <-- THIS IS THE CRITICAL FIX
-                                scales: { 
-                                    r: { 
-                                        angleLines: { color: 'rgba(255,255,255,0.1)' }, 
-                                        grid: { color: 'rgba(255,255,255,0.1)' }, 
-                                        pointLabels: { color: '#c9d1d9', font: {size: 10} }, 
-                                        ticks: { display: false } 
-                                    } 
-                                }, 
-                                plugins: { legend: { display: false } } 
-                            } 
-                        });
+                    const top6 = Object.entries(data.languages).sort((a,b) => b[1]-a[1]).slice(0,6);
+                    radarChartInstance = new Chart(document.getElementById('radarChart').getContext('2d'), { 
+                        type: 'radar', 
+                        data: { labels: top6.map(l => l[0]), datasets: [{ label: 'Projects', data: top6.map(l => l[1]), backgroundColor: 'rgba(88, 166, 255, 0.4)', borderColor: '#58a6ff', pointBackgroundColor: '#fff', borderWidth: 1 }] }, 
+                        options: { maintainAspectRatio: false, scales: { r: { angleLines: { color: 'rgba(255,255,255,0.1)' }, grid: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#c9d1d9', font: {size: 10} }, ticks: { display: false } } }, plugins: { legend: { display: false } } } 
+                    });
 
                     if (punchChartInstance) punchChartInstance.destroy();
                     const punchMap = {}; data.punchcard.forEach(p => { punchMap[`${p.x},${p.y}`] = (punchMap[`${p.x},${p.y}`] || 0) + 1; });
                     const bubbleData = Object.keys(punchMap).map(key => { const [x, y] = key.split(',').map(Number); return { x: x, y: y, r: Math.min(punchMap[key] * 3, 15) }; });
-                    punchChartInstance = new Chart(document.getElementById('punchChart').getContext('2d'), { type: 'bubble', data: { datasets: [{ label: 'Commits', data: bubbleData, backgroundColor: 'rgba(88, 166, 255, 0.6)', borderColor: '#58a6ff' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { min: -0.5, max: 6.5, reverse: true, ticks: { callback: val => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][val], color: '#8b949e', font: {size: 10} }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { min: -1, max: 24, ticks: { callback: val => val+':00', stepSize: 4, color: '#8b949e', font: {size: 10} }, grid: { display: false } } } } });
+                    punchChartInstance = new Chart(document.getElementById('punchChart').getContext('2d'), { 
+                        type: 'bubble', 
+                        data: { datasets: [{ label: 'Commits', data: bubbleData, backgroundColor: 'rgba(88, 166, 255, 0.6)', borderColor: '#58a6ff' }] }, 
+                        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: -0.5, max: 6.5, reverse: true, ticks: { callback: val => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][val], color: '#8b949e', font: {size: 10} }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { min: -1, max: 24, ticks: { callback: val => val+':00', stepSize: 4, color: '#8b949e', font: {size: 10} }, grid: { display: false } } } } 
+                    });
 
                     const heatmapEl = document.getElementById('heatmap'); heatmapEl.innerHTML = ''; 
                     // Safe Traversal for Heatmap Arrays
