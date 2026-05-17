@@ -130,7 +130,11 @@
         <div id="bottom-split" class="bottom-split">
             <div class="chart-container">
                 <h3 style="margin-top:0; font-size:16px;">Domain Expertise</h3>
-                <canvas id="radarChart" style="max-height: 180px; margin-bottom: 20px;"></canvas>
+<div style="width: 100%; overflow-x: auto; margin-bottom: 20px; padding-bottom: 10px;">
+    <div style="min-width: 400px; height: 180px;">
+        <canvas id="radarChart"></canvas>
+    </div>
+</div>
                 <h3 style="margin-top:0; font-size:16px;">Top Languages</h3>
                 <canvas id="langChart" style="max-height: 160px; margin-bottom: 20px;"></canvas>
                 <h3 style="margin-top:0; font-size:16px;">Most Starred</h3>
@@ -384,8 +388,33 @@
                     starChartInstance = new Chart(document.getElementById('starChart').getContext('2d'), { type: 'bar', data: { labels: topStarred.map(r => r.name.length > 10 ? r.name.substring(0,10) + '...' : r.name), datasets: [{ label: 'Stars', data: topStarred.map(r => r.stars), backgroundColor: '#e3b341', borderRadius: 4 }] }, options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } } });
 
                     if (radarChartInstance) radarChartInstance.destroy();
-                    const top6 = Object.entries(data.languages).sort((a,b) => b[1]-a[1]).slice(0,6);
-                    radarChartInstance = new Chart(document.getElementById('radarChart').getContext('2d'), { type: 'radar', data: { labels: top6.map(l => l[0]), datasets: [{ label: 'Projects', data: top6.map(l => l[1]), backgroundColor: 'rgba(88, 166, 255, 0.4)', borderColor: '#58a6ff', pointBackgroundColor: '#fff', borderWidth: 1 }] }, options: { scales: { r: { angleLines: { color: 'rgba(255,255,255,0.1)' }, grid: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#c9d1d9', font: {size: 10} }, ticks: { display: false } } }, plugins: { legend: { display: false } } } });
+                        const top6 = Object.entries(data.languages).sort((a,b) => b[1]-a[1]).slice(0,6);
+                        radarChartInstance = new Chart(document.getElementById('radarChart').getContext('2d'), { 
+                            type: 'radar', 
+                            data: { 
+                                labels: top6.map(l => l[0]), 
+                                datasets: [{ 
+                                    label: 'Projects', 
+                                    data: top6.map(l => l[1]), 
+                                    backgroundColor: 'rgba(88, 166, 255, 0.4)', 
+                                    borderColor: '#58a6ff', 
+                                    pointBackgroundColor: '#fff', 
+                                    borderWidth: 1 
+                                }] 
+                            }, 
+                            options: { 
+                                maintainAspectRatio: false, // <-- THIS IS THE CRITICAL FIX
+                                scales: { 
+                                    r: { 
+                                        angleLines: { color: 'rgba(255,255,255,0.1)' }, 
+                                        grid: { color: 'rgba(255,255,255,0.1)' }, 
+                                        pointLabels: { color: '#c9d1d9', font: {size: 10} }, 
+                                        ticks: { display: false } 
+                                    } 
+                                }, 
+                                plugins: { legend: { display: false } } 
+                            } 
+                        });
 
                     if (punchChartInstance) punchChartInstance.destroy();
                     const punchMap = {}; data.punchcard.forEach(p => { punchMap[`${p.x},${p.y}`] = (punchMap[`${p.x},${p.y}`] || 0) + 1; });
