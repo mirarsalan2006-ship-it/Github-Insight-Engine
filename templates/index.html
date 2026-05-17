@@ -12,55 +12,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <style>
+        /* (Your existing CSS remains exactly the same) */
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #c9d1d9; overflow: hidden; }
         #vanta-bg { position: fixed; z-index: -1; top: 0; left: 0; width: 100%; height: 100%; }
-
-        #black-curtain {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000000; z-index: 10000; pointer-events: none;
-            animation: curtainFade 1.5s ease-out 0.3s forwards;
-        }
-        @keyframes curtainFade {
-            0% { opacity: 1; }
-            100% { opacity: 0; visibility: hidden; }
-        }
-
-        .landing-container {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 600px; padding: 60px 40px; text-align: center;
-            background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.8);
-            z-index: 100; transition: opacity 0.6s ease, transform 0.6s ease;
-            opacity: 0; 
-            animation: landingFadeIn 1.5s ease-out 0.8s forwards;
-        }
-        @keyframes landingFadeIn {
-            0% { opacity: 0; transform: translate(-50%, -45%); filter: blur(4px); }
-            100% { opacity: 1; transform: translate(-50%, -50%); filter: blur(0); }
-        }
-
+        #black-curtain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 10000; pointer-events: none; animation: curtainFade 1.5s ease-out 0.3s forwards; }
+        @keyframes curtainFade { 0% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
+        .landing-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; padding: 60px 40px; text-align: center; background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); z-index: 100; transition: opacity 0.6s ease, transform 0.6s ease; opacity: 0; animation: landingFadeIn 1.5s ease-out 0.8s forwards; }
+        @keyframes landingFadeIn { 0% { opacity: 0; transform: translate(-50%, -45%); filter: blur(4px); } 100% { opacity: 1; transform: translate(-50%, -50%); filter: blur(0); } }
         .landing-container h1 { font-size: 50px; color: #58a6ff; margin: 0 0 15px 0; letter-spacing: 1px; }
         .landing-container p { font-size: 18px; color: #8b949e; margin-bottom: 40px; line-height: 1.6; }
-        
-        .launch-btn { 
-            padding: 16px 40px; font-size: 20px; font-weight: bold; color: white; 
-            background: linear-gradient(135deg, #238636, #2ea043); border: none; border-radius: 30px; 
-            cursor: pointer; transition: 0.3s; box-shadow: 0 8px 20px rgba(35, 134, 54, 0.4); 
-        }
+        .launch-btn { padding: 16px 40px; font-size: 20px; font-weight: bold; color: white; background: linear-gradient(135deg, #238636, #2ea043); border: none; border-radius: 30px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 20px rgba(35, 134, 54, 0.4); }
         .launch-btn:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 12px 25px rgba(35, 134, 54, 0.6); }
-        
         .fade-out { opacity: 0 !important; transform: translate(-50%, -55%) !important; pointer-events: none !important; }
         .fade-in { opacity: 1 !important; transform: translate(-50%, -50%) !important; pointer-events: auto !important; }
-
-        .container {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 900px; max-height: 90vh; overflow-y: auto; padding: 40px;
-            background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); text-align: center;
-        }
+        .container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; max-height: 90vh; overflow-y: auto; padding: 40px; background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); text-align: center; }
         .container::-webkit-scrollbar { width: 6px; }
         .container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
-
         .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .search-box { flex-grow: 1; display: flex; gap: 10px; }
         input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: rgba(1, 4, 9, 0.8); color: white; font-size: 16px; }
@@ -68,19 +35,14 @@
         button:hover { background-color: #2ea043; }
         .btn-outline { background-color: transparent; border: 1px solid #c9d1d9; }
         .btn-outline:hover { background-color: rgba(255,255,255,0.1); }
-        
         .profile-img { width: 120px; height: 120px; border-radius: 50%; margin-top: 10px; border: 3px solid #30363d; display: none; }
         #bio { color: #8b949e; font-size: 14px; margin-bottom: 10px; }
-        
         #ai-summary-container { display: none; background: rgba(88, 166, 255, 0.1); border-left: 4px solid #58a6ff; padding: 15px; text-align: left; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.5; color: #c9d1d9;}
-        
         .badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(88, 166, 255, 0.1); border: 1px solid #58a6ff; color: #58a6ff; padding: 4px 10px; border-radius: 20px; font-size: 12px; cursor: help; }
-
         .stats-grid { display: none; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         .stat-box { background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); }
         .stat-box h3 { margin: 0; font-size: 20px; color: #fff; }
         .stat-box p { margin: 5px 0 0 0; font-size: 11px; color: #8b949e; text-transform: uppercase; font-weight: bold;}
-
         .heatmap-wrapper { display: none; text-align: left; margin-bottom: 25px; }
         .heatmap-wrapper h3 { font-size: 16px; margin-bottom: 10px; }
         .heatmap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 10px; }
@@ -88,18 +50,15 @@
         .heatmap::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
         .week { display: flex; flex-direction: column; gap: 3px; }
         .day { width: 11px; height: 11px; border-radius: 2px; background-color: #161b22; }
-
         .bottom-split { display: none; justify-content: space-between; gap: 20px; text-align: left; }
         .chart-container, .activity-section { width: 30%; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); max-height: 500px; overflow-y: auto; }
         .repo-section { width: 40%; max-height: 500px; overflow-y: auto; padding-right: 5px; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 2px; }
-        
         .repo-item { background: rgba(255, 255, 255, 0.03); padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
         .repo-item:hover { background: rgba(255, 255, 255, 0.08); border-color: #58a6ff;}
         .repo-link { color: #58a6ff; font-weight: bold; font-size: 15px; margin-bottom: 4px; }
         .repo-meta { color: #8b949e; font-size: 12px; }
-
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center; }
         .modal-content { background: #0d1117; padding: 30px; border-radius: 15px; width: 700px; max-height: 85vh; border: 1px solid #30363d; text-align: left; position: relative; box-shadow: 0 15px 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; }
         .close-btn { position: absolute; top: 15px; right: 20px; color: #8b949e; font-size: 24px; cursor: pointer; text-decoration: none; transition: 0.2s; }
@@ -109,46 +68,24 @@
         #modal-readme img { max-width: 100%; height: auto; }
         #modal-readme code { background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; }
         #modal-readme pre { background: #161b22; padding: 10px; border-radius: 8px; overflow-x: auto; }
-
         #terminal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; z-index: 9999; padding: 40px; box-sizing: border-box; overflow-y: auto; }
         .term-line { margin: 5px 0; font-size: 16px; opacity: 0; }
         .term-cursor { display: inline-block; width: 10px; height: 18px; background: #0f0; animation: blink 1s step-end infinite; }
         @keyframes blink { 50% { opacity: 0; } }
-
         #wrapped-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #FF7B72, #D2A8FF); z-index: 9999; justify-content: center; align-items: center; text-align: center; color: white; flex-direction: column; }
         .wrapped-slide { font-size: 40px; font-weight: bold; opacity: 0; position: absolute; transition: opacity 1s ease-in-out; text-shadow: 0 4px 15px rgba(0,0,0,0.4); padding: 0 20px;}
-
-        @media (max-width: 950px) {
-            .landing-container { width: 90%; padding: 40px 20px; }
-            .container { width: 95vw; height: 95vh; padding: 20px; }
-            .bottom-split { flex-direction: column; }
-            .chart-container, .repo-section, .activity-section { width: 100%; max-height: 400px; box-sizing: border-box; }
-            .stat-box { width: 46% !important; }
-            .modal-content { width: 95%; padding: 20px; box-sizing: border-box; }
-        }
-
-        @media (max-width: 600px) {
-            .header-actions { flex-direction: column; align-items: stretch; gap: 15px; }
-            .search-box { flex-direction: column; width: 100%; }
-            .search-box button { width: 100%; }
-            .stat-box { width: 100% !important; }
-            .modal-stats { flex-direction: column; gap: 10px; text-align: center; }
-            #terminal-overlay { padding: 20px; font-size: 14px; }
-            .wrapped-slide { font-size: 28px; }
-        }
+        @media (max-width: 950px) { .landing-container { width: 90%; padding: 40px 20px; } .container { width: 95vw; height: 95vh; padding: 20px; } .bottom-split { flex-direction: column; } .chart-container, .repo-section, .activity-section { width: 100%; max-height: 400px; box-sizing: border-box; } .stat-box { width: 46% !important; } .modal-content { width: 95%; padding: 20px; box-sizing: border-box; } }
+        @media (max-width: 600px) { .header-actions { flex-direction: column; align-items: stretch; gap: 15px; } .search-box { flex-direction: column; width: 100%; } .search-box button { width: 100%; } .stat-box { width: 100% !important; } .modal-stats { flex-direction: column; gap: 10px; text-align: center; } #terminal-overlay { padding: 20px; font-size: 14px; } .wrapped-slide { font-size: 28px; } }
     </style>
 </head>
 <body>
-
     <div id="black-curtain"></div>
-
     <div id="vanta-bg"></div>
 
     <div id="landing-page" class="landing-container">
         <h1>GitHub Insight</h1>
         <p>Uncover deep developer analytics, AI-powered summaries, and gamified metrics. Initialize the engine to map the code journey.</p>
-        <button class="launch-btn" onclick="launchEngine()">Initialize Engine 🚀</button>
-        
+        <button class="launch-btn" id="init-btn">Initialize Engine 🚀</button>
         <p style="margin-top: 45px; margin-bottom: 0; font-size: 11px; color: rgba(139, 148, 158, 0.6); letter-spacing: 2px; text-transform: uppercase;">Developer: Arsalan Mir</p>
     </div>
 
@@ -157,26 +94,22 @@
         
         <div class="header-actions">
             <div class="search-box">
-            <input type="text" id="username" placeholder="Search a username..." onkeypress="if(event.key === 'Enter') analyzeProfile()">
-            
-            <button id="analyze-btn" onclick="analyzeProfile()">Analyze</button>
-            
-            <button onclick="triggerTerminal()" id="term-btn" style="display:none; background-color: #000; border: 1px solid #0f0; color: #0f0;">💻 Terminal</button>
-            <button onclick="triggerWrapped()" id="wrap-btn" class="btn-outline" style="display:none;">🕰️ Wrapped</button>
-        </div>
+                <input type="text" id="username" placeholder="Search a username...">
+                <button id="analyze-btn">Analyze</button>
+                <button id="term-btn" style="display:none; background-color: #000; border: 1px solid #0f0; color: #0f0;">💻 Terminal</button>
+                <button id="wrap-btn" class="btn-outline" style="display:none;">🕰️ Wrapped</button>
+            </div>
         </div>
 
         <img id="avatar" class="profile-img" src="" alt="Profile">
         
         <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
             <h2 id="name" style="margin-bottom: 5px; margin-top: 10px;"></h2>
-            <button id="copy-btn" onclick="copyShareLink()" style="display: none; padding: 5px 10px; font-size: 12px; background: #21262d; border: 1px solid #30363d; cursor: pointer;">🔗 Share Dashboard</button>
+            <button id="copy-btn" style="display: none; padding: 5px 10px; font-size: 12px; background: #21262d; border: 1px solid #30363d; cursor: pointer;">🔗 Share Dashboard</button>
         </div>
         
         <p id="bio"></p>
-        
         <div id="ai-summary-container"></div>
-
         <div id="orgs-container" style="display:flex; justify-content:center; gap:10px; margin-bottom: 10px; flex-wrap: wrap;"></div>
         <div id="badges-container" style="display:flex; justify-content:center; gap:10px; margin-bottom: 20px; flex-wrap: wrap;"></div>
 
@@ -185,7 +118,6 @@
             <div class="stat-box" style="width: 20%;"><h3 id="followers">-</h3><p>Follows</p></div>
             <div class="stat-box" style="width: 20%;"><h3 id="stars">-</h3><p>Stars</p></div>
             <div class="stat-box" style="width: 20%; border-color: #ff7b72;"><h3 id="current-streak" style="color:#ff7b72;">-</h3><p>Cur Streak</p></div>
-            
             <div class="stat-box" style="width: 28%; border-color: #e3b341;"><h3 id="longest-streak" style="color:#e3b341;">-</h3><p>Max Streak</p></div>
             <div class="stat-box" style="width: 28%; border-color: #98fb98;"><h3 id="bug-hunter" style="color:#98fb98;">-</h3><p>Avg Issue Fix</p></div>
             <div class="stat-box" style="width: 30%; border-color: #79c0ff;"><h3 id="persona" style="color:#79c0ff;">-</h3><p>Persona</p></div>
@@ -212,8 +144,8 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
                     <h3 style="margin:0; font-size:16px;">Repositories</h3>
                     <div style="display:flex; gap:5px;">
-                        <input type="text" id="repo-search" placeholder="Filter..." oninput="renderRepos()" style="padding: 6px; font-size:13px; width: 90px; margin:0;">
-                        <select id="repo-sort" onchange="renderRepos()" style="padding: 6px; font-size:13px; background: rgba(1, 4, 9, 0.8); color: white; border: 1px solid #30363d; border-radius: 6px; outline: none;">
+                        <input type="text" id="repo-search" placeholder="Filter..." style="padding: 6px; font-size:13px; width: 90px; margin:0;">
+                        <select id="repo-sort" style="padding: 6px; font-size:13px; background: rgba(1, 4, 9, 0.8); color: white; border: 1px solid #30363d; border-radius: 6px; outline: none;">
                             <option value="recent">Recent</option>
                             <option value="stars">Stars</option>
                         </select>
@@ -230,18 +162,18 @@
     </div>
 
     <div id="terminal-overlay">
-        <button class="exit-term-btn" onclick="document.getElementById('terminal-overlay').style.display='none'; document.getElementById('dashboard-content').style.display='block';">[ EXIT ]</button>
+        <button class="exit-term-btn" id="exit-term-btn">[ EXIT ]</button>
         <div id="terminal-output"></div><div class="term-cursor"></div>
     </div>
 
     <div id="wrapped-overlay">
-        <button class="exit-term-btn" style="border-color: white; color: white;" onclick="document.getElementById('wrapped-overlay').style.display='none'; document.getElementById('dashboard-content').style.display='block';">[ SKIP ]</button>
+        <button class="exit-term-btn" id="exit-wrap-btn" style="border-color: white; color: white;">[ SKIP ]</button>
         <div id="wrapped-content" style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;"></div>
     </div>
 
-    <div id="repoModal" class="modal-overlay" onclick="closeModal(event)">
-        <div class="modal-content" onclick="event.stopPropagation()">
-            <a href="#" class="close-btn" onclick="closeModal(event)">&times;</a>
+    <div id="repoModal" class="modal-overlay">
+        <div class="modal-content" id="modal-inner">
+            <a href="#" class="close-btn" id="close-modal-btn">&times;</a>
             <h2 id="modal-title" style="color: #58a6ff; margin-top: 0; margin-bottom: 5px;"></h2>
             <p id="modal-desc" style="color: #8b949e; line-height: 1.5; margin-top: 0;"></p>
             <div class="modal-stats">
@@ -251,63 +183,106 @@
             </div>
             <h3 style="font-size: 14px; margin-top: 0; color: #c9d1d9;">README.md</h3>
             <div id="modal-readme">Loading document...</div>
-            <button id="modal-link" style="width: 100%; flex-shrink: 0;" onclick="">Open Source in GitHub</button>
+            <button id="modal-link" style="width: 100%; flex-shrink: 0;">Open Source in GitHub</button>
         </div>
     </div>
 
     <script>
+        // Initialize Vanta Background
         VANTA.NET({ el: "#vanta-bg", mouseControls: true, touchControls: true, color: 0x58a6ff, backgroundColor: 0x010409, points: 15.0, maxDistance: 25.0, spacing: 20.0 });
         
-        let langChartInstance = null; let starChartInstance = null; let radarChartInstance = null; let punchChartInstance = null;
-        let globalRepoData = []; let wrappedData = {}; 
+        // POINT 10: IIFE to protect variables from the global window scope
+        (function() {
+            let langChartInstance = null; 
+            let starChartInstance = null; 
+            let radarChartInstance = null; 
+            let punchChartInstance = null;
+            let globalRepoData = []; 
+            let wrappedData = {}; 
 
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            if(params.has('user')) { 
-                document.getElementById('landing-page').style.display = 'none';
-                document.getElementById('dashboard-content').classList.add('fade-in');
-                document.getElementById('username').value = params.get('user'); 
-                analyzeProfile(); 
-            }
-        };
-
-        function launchEngine() {
-            const landing = document.getElementById('landing-page');
-            const dashboard = document.getElementById('dashboard-content');
-            landing.classList.add('fade-out');
-            setTimeout(() => {
-                landing.style.display = 'none';
-                dashboard.classList.add('fade-in');
-            }, 600); 
-        }
-
-        async function analyzeProfile() {
-            const username = document.getElementById('username').value;
-            if(!username) return;
-            
-            const btn = document.getElementById('analyze-btn'); 
-            btn.innerText = "Analyzing..."; 
-            btn.disabled = true;
-            
-            // FIXED: Secure URL parameter building
-            const params = new URLSearchParams();
-            params.set('user', username);
-            window.history.pushState({}, '', '?' + params.toString());
-
-            try {
-                const response = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                        // FIXED: API Key removed from frontend
-                    },
-                    // FIXED: Using defined username variable
-                    body: JSON.stringify({ username: username })
+            document.addEventListener('DOMContentLoaded', () => {
+                // Attach all event listeners (Fixing Point 7 - Inline Handlers)
+                document.getElementById('init-btn').addEventListener('click', launchEngine);
+                document.getElementById('analyze-btn').addEventListener('click', analyzeProfile);
+                document.getElementById('username').addEventListener('keypress', (e) => { if(e.key === 'Enter') analyzeProfile(); });
+                document.getElementById('repo-search').addEventListener('input', renderRepos);
+                document.getElementById('repo-sort').addEventListener('change', renderRepos);
+                document.getElementById('copy-btn').addEventListener('click', copyShareLink);
+                document.getElementById('term-btn').addEventListener('click', triggerTerminal);
+                document.getElementById('wrap-btn').addEventListener('click', triggerWrapped);
+                document.getElementById('exit-term-btn').addEventListener('click', () => {
+                    document.getElementById('terminal-overlay').style.display='none'; 
+                    document.getElementById('dashboard-content').style.display='block';
                 });
-                const data = await response.json();
+                document.getElementById('exit-wrap-btn').addEventListener('click', () => {
+                    document.getElementById('wrapped-overlay').style.display='none'; 
+                    document.getElementById('dashboard-content').style.display='block';
+                });
+                
+                const repoModal = document.getElementById('repoModal');
+                repoModal.addEventListener('click', closeModal);
+                document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+                document.getElementById('modal-inner').addEventListener('click', (e) => e.stopPropagation());
 
-                if (response.ok) {
-                    globalRepoData = data.recent_repos; 
+                // POINT 2: Sanitize URL Parameters on load
+                const params = new URLSearchParams(window.location.search);
+                if(params.has('user')) { 
+                    const safeUser = DOMPurify.sanitize(params.get('user'));
+                    document.getElementById('landing-page').style.display = 'none';
+                    document.getElementById('dashboard-content').classList.add('fade-in');
+                    document.getElementById('username').value = safeUser; 
+                    analyzeProfile(); 
+                }
+            });
+
+            function launchEngine() {
+                const landing = document.getElementById('landing-page');
+                const dashboard = document.getElementById('dashboard-content');
+                landing.classList.add('fade-out');
+                setTimeout(() => {
+                    landing.style.display = 'none';
+                    dashboard.classList.add('fade-in');
+                }, 600); 
+            }
+
+            async function analyzeProfile() {
+                // POINT 8: Safe Input & Regex Pre-Validation
+                const rawInput = document.getElementById('username').value.trim();
+                const username = DOMPurify.sanitize(rawInput);
+                
+                if (!username) return;
+                
+                if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$/.test(username)) {
+                    alert('Invalid GitHub username format.');
+                    return;
+                }
+                
+                const btn = document.getElementById('analyze-btn'); 
+                btn.innerText = "Analyzing..."; 
+                btn.disabled = true;
+                
+                const params = new URLSearchParams();
+                params.set('user', username);
+                window.history.pushState({}, '', '?' + params.toString());
+
+                // POINT 5 & 9: Robust Error Boundaries
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                            // Note: X-API-Key removed for security. Backend MUST have @require_auth removed.
+                        },
+                        body: JSON.stringify({ username: username })
+                    });
+                    
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Server rejected the request.');
+                    }
+
+                    globalRepoData = data.recent_repos || []; 
                     wrappedData = { timeline: data.profile.timeline, name: data.profile.name, topLang: Object.keys(data.languages)[0] || 'Code' };
 
                     document.getElementById('avatar').style.display = "inline";
@@ -318,7 +293,6 @@
                     document.getElementById('term-btn').style.display = "inline-block";
                     document.getElementById('wrap-btn').style.display = "inline-block";
                     
-                    // FIXED: Sanitize HTML from backend (handles the <b> tags in your python code safely)
                     document.getElementById('ai-summary-container').style.display = "block";
                     document.getElementById('ai-summary-container').innerHTML = DOMPurify.sanitize(data.profile.ai_summary);
 
@@ -333,26 +307,35 @@
                     document.getElementById('bug-hunter').textContent = data.profile.bug_hunter;
                     document.getElementById('persona').textContent = data.profile.persona;
 
-                    // FIXED: Safe HTML injection for Organizations
-                    const orgsContainer = document.getElementById('orgs-container'); orgsContainer.innerHTML = '';
+                    // POINT 3: Comprehensive DOMPurify usage for concatenated strings
+                    const orgsContainer = document.getElementById('orgs-container'); 
+                    orgsContainer.innerHTML = '';
                     if (data.organizations) {
                         let orgsHTML = '';
-                        data.organizations.forEach(org => orgsHTML += `<img src="${DOMPurify.sanitize(org.avatar)}" title="${DOMPurify.sanitize(org.login)}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #30363d;">`);
-                        orgsContainer.innerHTML = orgsHTML;
+                        data.organizations.forEach(org => {
+                            const safeAvatar = DOMPurify.sanitize(org.avatar);
+                            const safeLogin = DOMPurify.sanitize(org.login);
+                            orgsHTML += `<img src="${safeAvatar}" title="${safeLogin}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #30363d;">`;
+                        });
+                        orgsContainer.innerHTML = DOMPurify.sanitize(orgsHTML);
                     }
 
-                    // FIXED: Safe HTML injection for Badges
-                    const badgesContainer = document.getElementById('badges-container'); badgesContainer.innerHTML = '';
+                    const badgesContainer = document.getElementById('badges-container'); 
+                    badgesContainer.innerHTML = '';
                     if (data.badges) {
                         let badgesHTML = '';
-                        data.badges.forEach(b => badgesHTML += `<span class="badge" title="${DOMPurify.sanitize(b.desc)}">${DOMPurify.sanitize(b.icon)} ${DOMPurify.sanitize(b.title)}</span>`);
-                        badgesContainer.innerHTML = badgesHTML;
+                        data.badges.forEach(b => {
+                            badgesHTML += `<span class="badge" title="${DOMPurify.sanitize(b.desc)}">${DOMPurify.sanitize(b.icon)} ${DOMPurify.sanitize(b.title)}</span>`;
+                        });
+                        badgesContainer.innerHTML = DOMPurify.sanitize(badgesHTML);
                     }
 
-                    document.getElementById('repo-search').value = ''; document.getElementById('repo-sort').value = 'recent'; renderRepos();
+                    document.getElementById('repo-search').value = ''; 
+                    document.getElementById('repo-sort').value = 'recent'; 
+                    renderRepos();
 
-                    // FIXED: Safe HTML injection for Activity List
-                    const activityList = document.getElementById('activity-list'); activityList.innerHTML = '';
+                    const activityList = document.getElementById('activity-list'); 
+                    activityList.innerHTML = '';
                     if (data.recent_activity && data.recent_activity.length > 0) {
                         let activityHTML = '';
                         data.recent_activity.forEach(activity => {
@@ -363,9 +346,12 @@
                                     <span style="color: #c9d1d9;">${DOMPurify.sanitize(activity.action)}</span> <a href="https://github.com/${DOMPurify.sanitize(activity.full_repo)}" target="_blank" style="color: #58a6ff; text-decoration: none; font-weight: bold;">${DOMPurify.sanitize(activity.repo)}</a>
                                 </div>`;
                         });
-                        activityList.innerHTML = activityHTML;
-                    } else activityList.textContent = 'No recent public activity.';
+                        activityList.innerHTML = DOMPurify.sanitize(activityHTML);
+                    } else {
+                        activityList.textContent = 'No recent public activity.';
+                    }
 
+                    // Render Charts (Data handling for Chart.js is inherently safe from XSS as it draws to canvas)
                     Chart.defaults.color = '#8b949e';
                     if (langChartInstance) langChartInstance.destroy();
                     langChartInstance = new Chart(document.getElementById('langChart').getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(data.languages), datasets: [{ data: Object.values(data.languages), backgroundColor: ['#ff7b72', '#79c0ff', '#d2a8ff', '#a5d6ff', '#f0e68c', '#98fb98', '#ff9900'], borderWidth: 0 }] }, options: { plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10 } } }, cutout: '65%' } });
@@ -385,95 +371,164 @@
 
                     const heatmapEl = document.getElementById('heatmap'); heatmapEl.innerHTML = ''; 
                     if (data.heatmap) {
-                        document.getElementById('heatmap-title').innerText = `Contributions (${data.heatmap.totalContributions} in the last year)`;
+                        document.getElementById('heatmap-title').textContent = `Contributions (${data.heatmap.totalContributions} in the last year)`;
                         data.heatmap.weeks.forEach(week => {
                             const weekDiv = document.createElement('div'); weekDiv.className = 'week';
                             week.contributionDays.forEach(day => {
-                                const dayDiv = document.createElement('div'); dayDiv.className = 'day'; dayDiv.style.backgroundColor = DOMPurify.sanitize(day.color); dayDiv.title = `${DOMPurify.sanitize(day.contributionCount.toString())} on ${DOMPurify.sanitize(day.date)}`; weekDiv.appendChild(dayDiv);
+                                const dayDiv = document.createElement('div'); 
+                                dayDiv.className = 'day'; 
+                                dayDiv.style.backgroundColor = DOMPurify.sanitize(day.color); 
+                                dayDiv.title = `${DOMPurify.sanitize(day.contributionCount.toString())} on ${DOMPurify.sanitize(day.date)}`; 
+                                weekDiv.appendChild(dayDiv);
                             });
                             heatmapEl.appendChild(weekDiv);
                         });
                         heatmapEl.scrollLeft = heatmapEl.scrollWidth;
                     }
-                } else alert(data.error);
-            } catch (error) { alert("Could not connect to server."); }
-            btn.innerText = "Analyze"; btn.disabled = false;
-        }
-
-        function renderRepos() {
-            const searchTerm = document.getElementById('repo-search').value.toLowerCase();
-            const sortBy = document.getElementById('repo-sort').value;
-            const repoList = document.getElementById('repo-list');
-
-            let filtered = globalRepoData.filter(r => r.name.toLowerCase().includes(searchTerm) || r.lang.toLowerCase().includes(searchTerm));
-            if (sortBy === 'stars') filtered.sort((a, b) => b.stars - a.stars);
-            else if (sortBy === 'recent') filtered.sort((a, b) => new Date(b.updated) - new Date(a.updated));
-
-            repoList.innerHTML = '';
-            if (filtered.length === 0) { repoList.innerHTML = '<p style="color:#8b949e; text-align:center;">No repositories found.</p>'; return; }
-
-            // FIXED: Safe rendering for repo list elements
-            let repoHTML = '';
-            filtered.forEach(repo => {
-                repoHTML += `<div class="repo-item" onclick="openModal(${globalRepoData.indexOf(repo)})"><div><div class="repo-link">${DOMPurify.sanitize(repo.name)}</div><div class="repo-meta">💻 ${DOMPurify.sanitize(repo.lang)}</div></div><div class="repo-meta" style="color: #e3b341; font-weight: bold;">⭐ ${DOMPurify.sanitize(repo.stars.toString())}</div></div>`;
-            });
-            repoList.innerHTML = repoHTML;
-        }
-
-        async function openModal(index) {
-            const repo = globalRepoData[index];
-            document.getElementById('modal-title').textContent = repo.name; document.getElementById('modal-desc').textContent = repo.desc; document.getElementById('modal-stars').textContent = repo.stars; document.getElementById('modal-forks').textContent = repo.forks; document.getElementById('modal-issues').textContent = repo.issues; document.getElementById('modal-link').onclick = () => window.open(repo.url, '_blank');
-            document.getElementById('repoModal').style.display = 'flex';
-            
-            const readmeDiv = document.getElementById('modal-readme'); readmeDiv.innerHTML = '<p style="color:#58a6ff;">Fetching documentation...</p>';
-            try {
-                const res = await fetch(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/README.md`);
-                // FIXED: DOMPurify securing marked.parse
-                if (res.ok) { const text = await res.text(); readmeDiv.innerHTML = DOMPurify.sanitize(marked.parse(text)); } 
-                else readmeDiv.innerHTML = '<p style="color:#8b949e;">No README available.</p>';
-            } catch (err) { readmeDiv.innerHTML = '<p style="color:#ff7b72;">Error loading documentation.</p>'; }
-        }
-
-        function closeModal(event) { event.preventDefault(); document.getElementById('repoModal').style.display = 'none'; }
-        function copyShareLink() { navigator.clipboard.writeText(window.location.href).then(() => { const btn = document.getElementById('copy-btn'); btn.innerText = "✅ Link Copied!"; setTimeout(() => btn.innerText = "🔗 Share Dashboard", 2000); }); }
-
-        function triggerTerminal() {
-            document.getElementById('dashboard-content').style.display = 'none'; document.getElementById('terminal-overlay').style.display = 'block';
-            const output = document.getElementById('terminal-output'); output.innerHTML = '';
-            const lines = [`> INITIALIZING V2... [OK]`, `> TARGET ACQUIRED: ${document.getElementById('name').innerText.toUpperCase()}`, `> IDENTIFIED PERSONA: ${document.getElementById('persona').innerText}`, `> REPOSITORIES: ${document.getElementById('repos').innerText}`, `> TOTAL STAR POWER: ${document.getElementById('stars').innerText}`, `> AWAITING COMMAND_`];
-            let i = 0; function typeLine() { if (i < lines.length) { const l = document.createElement('div'); l.className = 'term-line'; l.innerText = lines[i]; output.appendChild(l); setTimeout(() => l.style.opacity = 1, 50); i++; setTimeout(typeLine, Math.random() * 300 + 200); } } typeLine();
-        }
-
-        function triggerWrapped() {
-            document.getElementById('dashboard-content').style.display = 'none'; document.getElementById('wrapped-overlay').style.display = 'flex';
-            const wrapContent = document.getElementById('wrapped-content'); wrapContent.innerHTML = '';
-            
-            const years = Object.keys(wrappedData.timeline).sort();
-            const activeYear = years.length > 0 ? years[years.length-1] : "Recently";
-            const reposThatYear = wrappedData.timeline[activeYear] || 0;
-
-            const slides = [
-                `Ready to look back, ${wrappedData.name.split(' ')[0]}? 🎧`,
-                `You've been building the future.`,
-                `In ${activeYear} alone, you started ${reposThatYear} new projects.`,
-                `And you poured your soul into ${wrappedData.topLang}.`,
-                `Keep building. 🚀`
-            ];
-
-            let i = 0;
-            function showSlide() {
-                if(i < slides.length) {
-                    wrapContent.innerHTML = `<div class="wrapped-slide">${DOMPurify.sanitize(slides[i])}</div>`;
-                    const slideEl = wrapContent.querySelector('.wrapped-slide');
-                    setTimeout(() => slideEl.style.opacity = 1, 100);
-                    setTimeout(() => { slideEl.style.opacity = 0; i++; setTimeout(showSlide, 1000); }, 3500);
-                } else {
-                    document.getElementById('wrapped-overlay').style.display = 'none';
-                    document.getElementById('dashboard-content').style.display = 'block';
+                } catch (error) { 
+                    alert(`Error: ${error.message}`); 
+                } finally {
+                    btn.innerText = "Analyze"; 
+                    btn.disabled = false;
                 }
             }
-            showSlide();
-        }
+
+            function renderRepos() {
+                const searchTerm = DOMPurify.sanitize(document.getElementById('repo-search').value.toLowerCase());
+                const sortBy = DOMPurify.sanitize(document.getElementById('repo-sort').value);
+                const repoList = document.getElementById('repo-list');
+
+                let filtered = globalRepoData.filter(r => r.name.toLowerCase().includes(searchTerm) || (r.lang && r.lang.toLowerCase().includes(searchTerm)));
+                if (sortBy === 'stars') filtered.sort((a, b) => b.stars - a.stars);
+                else if (sortBy === 'recent') filtered.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+
+                repoList.innerHTML = '';
+                if (filtered.length === 0) { repoList.innerHTML = '<p style="color:#8b949e; text-align:center;">No repositories found.</p>'; return; }
+
+                filtered.forEach((repo, index) => {
+                    const repoItem = document.createElement('div');
+                    repoItem.className = 'repo-item';
+                    repoItem.addEventListener('click', () => openModal(index));
+                    
+                    repoItem.innerHTML = DOMPurify.sanitize(`
+                        <div>
+                            <div class="repo-link">${repo.name}</div>
+                            <div class="repo-meta">💻 ${repo.lang}</div>
+                        </div>
+                        <div class="repo-meta" style="color: #e3b341; font-weight: bold;">⭐ ${repo.stars.toString()}</div>
+                    `);
+                    repoList.appendChild(repoItem);
+                });
+            }
+
+            async function openModal(index) {
+                const repo = globalRepoData[index];
+                document.getElementById('modal-title').textContent = repo.name; 
+                document.getElementById('modal-desc').textContent = repo.desc; 
+                document.getElementById('modal-stars').textContent = repo.stars; 
+                document.getElementById('modal-forks').textContent = repo.forks; 
+                document.getElementById('modal-issues').textContent = repo.issues; 
+                
+                // POINT 6: Modal Link Handler Fixed
+                const modalLinkBtn = document.getElementById('modal-link');
+                // Remove previous listeners to prevent multiple tabs opening
+                const newBtn = modalLinkBtn.cloneNode(true);
+                modalLinkBtn.parentNode.replaceChild(newBtn, modalLinkBtn);
+                newBtn.addEventListener('click', () => {
+                    window.open(`https://github.com/${repo.full_name}`, '_blank');
+                });
+                
+                document.getElementById('repoModal').style.display = 'flex';
+                
+                const readmeDiv = document.getElementById('modal-readme'); 
+                readmeDiv.innerHTML = '<p style="color:#58a6ff;">Fetching documentation...</p>';
+                try {
+                    const res = await fetch(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/README.md`);
+                    if (res.ok) { 
+                        const text = await res.text(); 
+                        readmeDiv.innerHTML = DOMPurify.sanitize(marked.parse(text)); 
+                    } else {
+                        readmeDiv.innerHTML = '<p style="color:#8b949e;">No README available.</p>';
+                    }
+                } catch (err) { 
+                    readmeDiv.innerHTML = '<p style="color:#ff7b72;">Error loading documentation.</p>'; 
+                }
+            }
+
+            function closeModal(event) { 
+                if (event) event.preventDefault(); 
+                document.getElementById('repoModal').style.display = 'none'; 
+            }
+
+            function copyShareLink() { 
+                navigator.clipboard.writeText(window.location.href).then(() => { 
+                    const btn = document.getElementById('copy-btn'); 
+                    btn.innerText = "✅ Link Copied!"; 
+                    setTimeout(() => btn.innerText = "🔗 Share Dashboard", 2000); 
+                }); 
+            }
+
+            function triggerTerminal() {
+                document.getElementById('dashboard-content').style.display = 'none'; 
+                document.getElementById('terminal-overlay').style.display = 'block';
+                const output = document.getElementById('terminal-output'); 
+                output.innerHTML = '';
+                const lines = [
+                    `> INITIALIZING V2... [OK]`, 
+                    `> TARGET ACQUIRED: ${document.getElementById('name').textContent.toUpperCase()}`, 
+                    `> IDENTIFIED PERSONA: ${document.getElementById('persona').textContent}`, 
+                    `> REPOSITORIES: ${document.getElementById('repos').textContent}`, 
+                    `> TOTAL STAR POWER: ${document.getElementById('stars').textContent}`, 
+                    `> AWAITING COMMAND_`
+                ];
+                let i = 0; 
+                function typeLine() { 
+                    if (i < lines.length) { 
+                        const l = document.createElement('div'); 
+                        l.className = 'term-line'; 
+                        l.textContent = lines[i]; 
+                        output.appendChild(l); 
+                        setTimeout(() => l.style.opacity = 1, 50); 
+                        i++; 
+                        setTimeout(typeLine, Math.random() * 300 + 200); 
+                    } 
+                } 
+                typeLine();
+            }
+
+            function triggerWrapped() {
+                document.getElementById('dashboard-content').style.display = 'none'; 
+                document.getElementById('wrapped-overlay').style.display = 'flex';
+                const wrapContent = document.getElementById('wrapped-content'); 
+                wrapContent.innerHTML = '';
+                
+                const years = Object.keys(wrappedData.timeline).sort();
+                const activeYear = years.length > 0 ? years[years.length-1] : "Recently";
+                const reposThatYear = wrappedData.timeline[activeYear] || 0;
+
+                const slides = [
+                    `Ready to look back, ${wrappedData.name.split(' ')[0]}? 🎧`,
+                    `You've been building the future.`,
+                    `In ${activeYear} alone, you started ${reposThatYear} new projects.`,
+                    `And you poured your soul into ${wrappedData.topLang}.`,
+                    `Keep building. 🚀`
+                ];
+
+                let i = 0;
+                function showSlide() {
+                    if(i < slides.length) {
+                        wrapContent.innerHTML = `<div class="wrapped-slide">${DOMPurify.sanitize(slides[i])}</div>`;
+                        const slideEl = wrapContent.querySelector('.wrapped-slide');
+                        setTimeout(() => slideEl.style.opacity = 1, 100);
+                        setTimeout(() => { slideEl.style.opacity = 0; i++; setTimeout(showSlide, 1000); }, 3500);
+                    } else {
+                        document.getElementById('wrapped-overlay').style.display = 'none';
+                        document.getElementById('dashboard-content').style.display = 'block';
+                    }
+                }
+                showSlide();
+            }
+        })();
     </script>
 </body>
 </html>

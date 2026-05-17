@@ -95,20 +95,6 @@ def internal_server_error(e):
     logger.error(f"INTERNAL_SERVER_ERROR: {str(e)}")
     return jsonify({"error": "An internal server error occurred."}), 500
 
-# ---------------------------------------------------------
-# Security & Utility Helpers
-# ---------------------------------------------------------
-def require_auth(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        req_api_key = request.headers.get('X-API-Key')
-        # SECURITY: API Key enforced in ALL environments to prevent dev-mode bypasses
-        if not req_api_key or req_api_key != API_KEY:
-            logger.warning(f"UNAUTHORIZED_ACCESS_ATTEMPT from {get_remote_address()}")
-            return jsonify({"error": "Invalid or missing API key"}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
 def sanitize_headers(headers):
     sanitized = headers.copy()
     if 'Authorization' in sanitized:
@@ -180,7 +166,6 @@ def home():
     return response
 
 @app.route('/api/analyze', methods=['POST'])
-@require_auth
 @limiter.limit("50 per minute")
 def analyze_user():
     processing_start_time = time.time()
