@@ -3,435 +3,333 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://raw.githubusercontent.com; img-src 'self' data: https:;">
-    
     <title>GitHub Insight Engine</title>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js" integrity="sha512-334uBDwY0iZ2TklV1O/xvwbWwmjz66uQ3AL/OvrM8+vE0cqbQHBeq6sX4mXFC/44f5Y4uikB53M5jN/2rE+z3g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.net.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js" integrity="sha512-H+rglffZ6f5gF7Wg6h4zqMzvvuqfk1K1sH7rZxtUzvbO5/Xh5Z1NIpsGf79z/3Kkng8a42mZ2sK6B1PqD1n7Kw==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 
     <style>
-        /* POINT 5: CSS cleanup and externalization */
-        :root { --bg-dark: #010409; --panel-bg: rgba(13, 17, 23, 0.75); --border-color: #30363d; --text-main: #c9d1d9; --text-muted: #8b949e; --accent: #58a6ff; --success: #238636; --success-hover: #2ea043; --danger: #ff7b72; --warning: #e3b341; }
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: var(--text-main); overflow: hidden; background-color: var(--bg-dark); }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #c9d1d9; overflow: hidden; }
         #vanta-bg { position: fixed; z-index: -1; top: 0; left: 0; width: 100%; height: 100%; }
         #black-curtain { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 10000; pointer-events: none; animation: curtainFade 1.5s ease-out 0.3s forwards; }
         @keyframes curtainFade { 0% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
-        
-        .glass-panel { background: var(--panel-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); }
-        
-        .landing-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; padding: 60px 40px; text-align: center; z-index: 100; transition: opacity 0.6s ease, transform 0.6s ease; opacity: 0; animation: landingFadeIn 1.5s ease-out 0.8s forwards; }
+        .landing-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; padding: 60px 40px; text-align: center; background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 15px 50px rgba(0,0,0,0.8); z-index: 100; transition: opacity 0.6s ease, transform 0.6s ease; opacity: 0; animation: landingFadeIn 1.5s ease-out 0.8s forwards; }
         @keyframes landingFadeIn { 0% { opacity: 0; transform: translate(-50%, -45%); filter: blur(4px); } 100% { opacity: 1; transform: translate(-50%, -50%); filter: blur(0); } }
-        .landing-container h1 { font-size: 50px; color: var(--accent); margin: 0 0 15px 0; letter-spacing: 1px; }
-        .landing-container p { font-size: 18px; color: var(--text-muted); margin-bottom: 40px; line-height: 1.6; }
-        
-        button { font-family: inherit; cursor: pointer; transition: 0.2s; min-height: 44px; /* POINT 6: Touch target */ }
-        .launch-btn { padding: 16px 40px; font-size: 20px; font-weight: bold; color: white; background: linear-gradient(135deg, var(--success), var(--success-hover)); border: none; border-radius: 30px; box-shadow: 0 8px 20px rgba(35, 134, 54, 0.4); }
+        .landing-container h1 { font-size: 50px; color: #58a6ff; margin: 0 0 15px 0; letter-spacing: 1px; }
+        .landing-container p { font-size: 18px; color: #8b949e; margin-bottom: 40px; line-height: 1.6; }
+        .launch-btn { padding: 16px 40px; font-size: 20px; font-weight: bold; color: white; background: linear-gradient(135deg, #238636, #2ea043); border: none; border-radius: 30px; cursor: pointer; transition: 0.3s; box-shadow: 0 8px 20px rgba(35, 134, 54, 0.4); }
         .launch-btn:hover { transform: scale(1.05) translateY(-2px); box-shadow: 0 12px 25px rgba(35, 134, 54, 0.6); }
-        
         .fade-out { opacity: 0 !important; transform: translate(-50%, -55%) !important; pointer-events: none !important; }
         .fade-in { opacity: 1 !important; transform: translate(-50%, -50%) !important; pointer-events: auto !important; }
-        
-        .main-app { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; max-height: 90vh; overflow-y: auto; padding: 40px; text-align: center; }
-        .main-app::-webkit-scrollbar { width: 6px; }
-        .main-app::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
-        
-        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 10px; }
+        .container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; max-height: 90vh; overflow-y: auto; padding: 40px; background: rgba(13, 17, 23, 0.75); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.7); text-align: center; }
+        .container::-webkit-scrollbar { width: 6px; }
+        .container::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
+        .header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .search-box { flex-grow: 1; display: flex; gap: 10px; }
-        input, select { padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(1, 4, 9, 0.8); color: white; font-size: 16px; min-height: 44px; }
-        .btn-primary { padding: 12px 24px; background-color: var(--success); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; white-space: nowrap; }
-        .btn-primary:hover:not(:disabled) { background-color: var(--success-hover); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-outline { background-color: transparent; border: 1px solid var(--text-main); color: var(--text-main); border-radius: 8px; padding: 12px 24px;}
+        input { flex-grow: 1; padding: 12px; border-radius: 8px; border: 1px solid #30363d; background: rgba(1, 4, 9, 0.8); color: white; font-size: 16px; }
+        button { padding: 12px 24px; background-color: #238636; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; transition: 0.2s; white-space: nowrap; }
+        button:hover { background-color: #2ea043; }
+        .btn-outline { background-color: transparent; border: 1px solid #c9d1d9; }
         .btn-outline:hover { background-color: rgba(255,255,255,0.1); }
-        
-        .profile-img { width: 120px; height: 120px; border-radius: 50%; margin-top: 10px; border: 3px solid var(--border-color); display: none; }
-        .ai-summary { display: none; background: rgba(88, 166, 255, 0.1); border-left: 4px solid var(--accent); padding: 15px; text-align: left; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.5; }
-        
+        .profile-img { width: 120px; height: 120px; border-radius: 50%; margin-top: 10px; border: 3px solid #30363d; display: none; }
+        #bio { color: #8b949e; font-size: 14px; margin-bottom: 10px; }
+        #ai-summary-container { display: none; background: rgba(88, 166, 255, 0.1); border-left: 4px solid #58a6ff; padding: 15px; text-align: left; margin-bottom: 20px; border-radius: 0 8px 8px 0; font-size: 14px; line-height: 1.5; color: #c9d1d9;}
+        .badge { display: inline-flex; align-items: center; gap: 5px; background: rgba(88, 166, 255, 0.1); border: 1px solid #58a6ff; color: #58a6ff; padding: 4px 10px; border-radius: 20px; font-size: 12px; cursor: help; }
         .stats-grid { display: none; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         .stat-box { background: rgba(255, 255, 255, 0.03); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); }
         .stat-box h3 { margin: 0; font-size: 20px; color: #fff; }
-        .stat-box p { margin: 5px 0 0 0; font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: bold;}
-        
+        .stat-box p { margin: 5px 0 0 0; font-size: 11px; color: #8b949e; text-transform: uppercase; font-weight: bold;}
         .heatmap-wrapper { display: none; text-align: left; margin-bottom: 25px; }
+        .heatmap-wrapper h3 { font-size: 16px; margin-bottom: 10px; }
         .heatmap { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 10px; }
         .heatmap::-webkit-scrollbar { height: 6px; }
-        .heatmap::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .heatmap::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
         .week { display: flex; flex-direction: column; gap: 3px; }
         .day { width: 11px; height: 11px; border-radius: 2px; background-color: #161b22; }
+        .bottom-split { display: none; justify-content: space-between; gap: 20px; text-align: left; }
         
-        /* POINT 6: CSS Grid instead of Flexbox */
-        .bottom-grid { display: none; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: left; }
-        .grid-panel { background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); max-height: 500px; overflow-y: auto; overflow-x: hidden; }
-        .grid-panel h3 { margin-top: 0; font-size: 16px; margin-bottom: 15px; }
+        /* Updated chart-container CSS to ensure proper scrolling */
+        .chart-container, .activity-section { width: 30%; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.05); max-height: 500px; }
+        .activity-section { overflow-y: auto; }
+        
+        .repo-section { width: 40%; max-height: 500px; overflow-y: auto; padding-right: 5px; }
+        ::-webkit-scrollbar { width: 4px; height: 6px; }
+        ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
         
         .repo-item { background: rgba(255, 255, 255, 0.03); padding: 10px 15px; border-radius: 8px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border: 1px solid transparent; transition: 0.2s; }
-        .repo-item:hover, .repo-item:focus { background: rgba(255, 255, 255, 0.08); border-color: var(--accent); outline: none; }
-        .repo-link { color: var(--accent); font-weight: bold; font-size: 15px; margin-bottom: 4px; }
-        .repo-meta { color: var(--text-muted); font-size: 12px; }
-        
+        .repo-item:hover { background: rgba(255, 255, 255, 0.08); border-color: #58a6ff;}
+        .repo-link { color: #58a6ff; font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+        .repo-meta { color: #8b949e; font-size: 12px; }
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: var(--bg-dark); padding: 30px; border-radius: 15px; width: 700px; max-height: 85vh; border: 1px solid var(--border-color); text-align: left; position: relative; display: flex; flex-direction: column; }
-        .close-btn { position: absolute; top: 15px; right: 20px; color: var(--text-muted); font-size: 24px; cursor: pointer; text-decoration: none; border: none; background: none; }
-        .close-btn:hover, .close-btn:focus { color: var(--danger); outline: none; }
+        .modal-content { background: #0d1117; padding: 30px; border-radius: 15px; width: 700px; max-height: 85vh; border: 1px solid #30363d; text-align: left; position: relative; box-shadow: 0 15px 50px rgba(0,0,0,0.8); display: flex; flex-direction: column; }
+        .close-btn { position: absolute; top: 15px; right: 20px; color: #8b949e; font-size: 24px; cursor: pointer; text-decoration: none; transition: 0.2s; }
+        .close-btn:hover { color: #ff7b72; }
         .modal-stats { display: flex; gap: 20px; margin: 15px 0; padding: 15px; background: #161b22; border-radius: 10px; flex-shrink: 0; }
-        #modal-readme { background: var(--bg-dark); padding: 20px; border-radius: 10px; border: 1px solid var(--border-color); overflow-y: auto; flex-grow: 1; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
+        #modal-readme { background: #010409; padding: 20px; border-radius: 10px; border: 1px solid #30363d; overflow-y: auto; flex-grow: 1; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
         #modal-readme img { max-width: 100%; height: auto; }
-        
-        /* POINT 7 & 9: Toast Notifications */
-        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 10001; display: flex; flex-direction: column; gap: 10px; }
-        .toast { background: var(--panel-bg); border: 1px solid var(--border-color); color: white; padding: 15px 20px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transform: translateX(120%); transition: transform 0.3s ease; }
-        .toast.show { transform: translateX(0); }
-        .toast.error { border-left: 4px solid var(--danger); }
-        .toast.success { border-left: 4px solid var(--success); }
-        
-        @media (max-width: 950px) { 
-            .main-app { width: 95vw; height: 95vh; padding: 20px; } 
-            .bottom-grid { grid-template-columns: 1fr; } /* Stack on tablet */
-            .modal-content { width: 95%; padding: 20px; box-sizing: border-box; } 
-        }
+        #modal-readme code { background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; }
+        #modal-readme pre { background: #161b22; padding: 10px; border-radius: 8px; overflow-x: auto; }
+        #terminal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: #0f0; font-family: 'Courier New', Courier, monospace; z-index: 9999; padding: 40px; box-sizing: border-box; overflow-y: auto; }
+        .term-line { margin: 5px 0; font-size: 16px; opacity: 0; }
+        .term-cursor { display: inline-block; width: 10px; height: 18px; background: #0f0; animation: blink 1s step-end infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        #wrapped-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #FF7B72, #D2A8FF); z-index: 9999; justify-content: center; align-items: center; text-align: center; color: white; flex-direction: column; }
+        .wrapped-slide { font-size: 40px; font-weight: bold; opacity: 0; position: absolute; transition: opacity 1s ease-in-out; text-shadow: 0 4px 15px rgba(0,0,0,0.4); padding: 0 20px;}
+        @media (max-width: 950px) { .landing-container { width: 90%; padding: 40px 20px; } .container { width: 95vw; height: 95vh; padding: 20px; } .bottom-split { flex-direction: column; } .chart-container, .repo-section, .activity-section { width: 100%; max-height: 400px; box-sizing: border-box; } .stat-box { width: 46% !important; } .modal-content { width: 95%; padding: 20px; box-sizing: border-box; } }
+        @media (max-width: 600px) { .header-actions { flex-direction: column; align-items: stretch; gap: 15px; } .search-box { flex-direction: column; width: 100%; } .search-box button { width: 100%; } .stat-box { width: 100% !important; } .modal-stats { flex-direction: column; gap: 10px; text-align: center; } #terminal-overlay { padding: 20px; font-size: 14px; } .wrapped-slide { font-size: 28px; } }
     </style>
 </head>
 <body>
     <div id="black-curtain"></div>
     <div id="vanta-bg"></div>
-    
-    <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
-    <section id="landing-page" class="landing-container glass-panel">
+    <div id="landing-page" class="landing-container">
         <h1>GitHub Insight</h1>
         <p>Uncover deep developer analytics, AI-powered summaries, and gamified metrics. Initialize the engine to map the code journey.</p>
-        <button class="launch-btn" id="init-btn" aria-label="Initialize Engine">Initialize Engine 🚀</button>
+        <button class="launch-btn" id="init-btn">Initialize Engine 🚀</button>
         <p style="margin-top: 45px; margin-bottom: 0; font-size: 11px; color: rgba(139, 148, 158, 0.6); letter-spacing: 2px; text-transform: uppercase;">Developer: Arsalan Mir</p>
-    </section>
+    </div>
 
-    <main class="main-app glass-panel" id="dashboard-content" style="opacity: 0; pointer-events: none; transition: opacity 0.8s ease, transform 0.8s ease;" data-testid="dashboard">
-        <header>
-            <h1 style="margin-top: 0; margin-bottom: 20px; text-align: left;">GitHub Insight</h1>
-            <div class="header-actions">
-                <div class="search-box">
-                    <input type="text" id="username" placeholder="Search a username..." maxlength="39" aria-label="GitHub Username">
-                    <button id="analyze-btn" class="btn-primary" aria-label="Analyze Profile">Analyze</button>
-                    <button id="term-btn" class="btn-outline" style="display:none; border-color: #0f0; color: #0f0;">💻 Terminal</button>
-                    <button id="wrap-btn" class="btn-outline" style="display:none;">🕰️ Wrapped</button>
-                </div>
+    <div class="container" id="dashboard-content" style="opacity: 0; pointer-events: none; transition: opacity 0.8s ease, transform 0.8s ease;">
+        <h1 style="margin-top: 0; margin-bottom: 20px; text-align: left;">GitHub Insight</h1>
+        
+        <div class="header-actions">
+            <div class="search-box">
+                <input type="text" id="username" placeholder="Search a username..." maxlength="39">
+                <button id="analyze-btn">Analyze</button>
+                <button id="term-btn" style="display:none; background-color: #000; border: 1px solid #0f0; color: #0f0;">💻 Terminal</button>
+                <button id="wrap-btn" class="btn-outline" style="display:none;">🕰️ Wrapped</button>
             </div>
-        </header>
+        </div>
 
-        <article>
-            <img id="avatar" class="profile-img" src="" alt="Profile Avatar">
-            <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
-                <h2 id="name" style="margin-bottom: 5px; margin-top: 10px;"></h2>
-                <button id="copy-btn" class="btn-outline" style="display: none; padding: 5px 10px; font-size: 12px; height: auto;" aria-label="Copy Share Link">🔗 Share</button>
+        <img id="avatar" class="profile-img" src="" alt="Profile">
+        
+        <div style="display: flex; justify-content: center; align-items: center; gap: 10px;">
+            <h2 id="name" style="margin-bottom: 5px; margin-top: 10px;"></h2>
+            <button id="copy-btn" style="display: none; padding: 5px 10px; font-size: 12px; background: #21262d; border: 1px solid #30363d; cursor: pointer;">🔗 Share Dashboard</button>
+        </div>
+        
+        <p id="bio"></p>
+        <div id="ai-summary-container"></div>
+        <div id="orgs-container" style="display:flex; justify-content:center; gap:10px; margin-bottom: 10px; flex-wrap: wrap;"></div>
+        <div id="badges-container" style="display:flex; justify-content:center; gap:10px; margin-bottom: 20px; flex-wrap: wrap;"></div>
+
+        <div id="stats-grid" class="stats-grid">
+            <div class="stat-box" style="width: 20%;"><h3 id="repos">-</h3><p>Repos</p></div>
+            <div class="stat-box" style="width: 20%;"><h3 id="followers">-</h3><p>Follows</p></div>
+            <div class="stat-box" style="width: 20%;"><h3 id="stars">-</h3><p>Stars</p></div>
+            <div class="stat-box" style="width: 20%; border-color: #ff7b72;"><h3 id="current-streak" style="color:#ff7b72;">-</h3><p>Cur Streak</p></div>
+            <div class="stat-box" style="width: 28%; border-color: #e3b341;"><h3 id="longest-streak" style="color:#e3b341;">-</h3><p>Max Streak</p></div>
+            <div class="stat-box" style="width: 28%; border-color: #98fb98;"><h3 id="bug-hunter" style="color:#98fb98;">-</h3><p>Avg Issue Fix</p></div>
+            <div class="stat-box" style="width: 30%; border-color: #79c0ff;"><h3 id="persona" style="color:#79c0ff;">-</h3><p>Persona</p></div>
+        </div>
+
+        <div id="heatmap-section" class="heatmap-wrapper">
+            <h3 id="heatmap-title">Contribution Activity</h3>
+            <div id="heatmap" class="heatmap"></div>
+        </div>
+
+        <div id="bottom-split" class="bottom-split">
+            <div class="chart-container" style="overflow-x: auto; overflow-y: auto;">
+                <div style="min-width: 500px; padding-bottom: 15px; padding-right: 15px;">
+                    <h3 style="margin-top:0; font-size:16px;">Domain Expertise</h3>
+                    <div style="height: 180px; margin-bottom: 20px;"><canvas id="radarChart"></canvas></div>
+                    
+                    <h3 style="margin-top:0; font-size:16px;">Top Languages</h3>
+                    <div style="height: 160px; margin-bottom: 20px;"><canvas id="langChart"></canvas></div>
+                    
+                    <h3 style="margin-top:0; font-size:16px;">Most Starred</h3>
+                    <div style="height: 160px; margin-bottom: 20px;"><canvas id="starChart"></canvas></div>
+                    
+                    <h3 style="margin-top:0; font-size:16px;">Work Habits (90 Days)</h3>
+                    <div style="height: 180px;"><canvas id="punchChart"></canvas></div>
+                </div>
             </div>
             
-            <p id="bio"></p>
-            <div id="ai-summary-container" class="ai-summary"></div>
-            <div id="orgs-container" style="display:flex; justify-content:center; gap:10px; margin-bottom: 10px; flex-wrap: wrap;"></div>
-            <div id="badges-container" style="display:flex; justify-content:center; gap:10px; margin-bottom: 20px; flex-wrap: wrap;"></div>
-
-            <section id="stats-grid" class="stats-grid">
-                <div class="stat-box" style="width: 20%;"><h3 id="repos">-</h3><p>Repos</p></div>
-                <div class="stat-box" style="width: 20%;"><h3 id="followers">-</h3><p>Follows</p></div>
-                <div class="stat-box" style="width: 20%;"><h3 id="stars">-</h3><p>Stars</p></div>
-                <div class="stat-box" style="width: 20%; border-color: var(--danger);"><h3 id="current-streak" style="color:var(--danger);">-</h3><p>Cur Streak</p></div>
-                <div class="stat-box" style="width: 28%; border-color: var(--warning);"><h3 id="longest-streak" style="color:var(--warning);">-</h3><p>Max Streak</p></div>
-                <div class="stat-box" style="width: 28%; border-color: #98fb98;"><h3 id="bug-hunter" style="color:#98fb98;">-</h3><p>Avg Issue Fix</p></div>
-                <div class="stat-box" style="width: 30%; border-color: var(--accent);"><h3 id="persona" style="color:var(--accent);">-</h3><p>Persona</p></div>
-            </section>
-
-            <section id="heatmap-section" class="heatmap-wrapper">
-                <h3 id="heatmap-title">Contribution Activity</h3>
-                <div id="heatmap" class="heatmap" aria-label="Contribution Heatmap"></div>
-            </section>
-
-            <section id="bottom-split" class="bottom-grid">
-                
-                <div class="grid-panel" style="overflow-x: auto; overflow-y: auto;">
-                    <div style="min-width: 350px;">
-                        <h3>Domain Expertise</h3>
-                        <div style="height: 180px; margin-bottom: 20px;"><canvas id="radarChart" aria-label="Domain Expertise Chart"></canvas></div>
-                        <h3>Top Languages</h3>
-                        <div style="height: 160px; margin-bottom: 20px;"><canvas id="langChart" aria-label="Languages Chart"></canvas></div>
-                        <h3>Most Starred</h3>
-                        <div style="height: 160px; margin-bottom: 20px;"><canvas id="starChart" aria-label="Most Starred Chart"></canvas></div>
-                        <h3>Work Habits (90 Days)</h3>
-                        <div style="height: 180px;"><canvas id="punchChart" aria-label="Work Habits Chart"></canvas></div>
+            <div class="repo-section">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <h3 style="margin:0; font-size:16px;">Repositories</h3>
+                    <div style="display:flex; gap:5px;">
+                        <input type="text" id="repo-search" placeholder="Filter..." style="padding: 6px; font-size:13px; width: 90px; margin:0;">
+                        <select id="repo-sort" style="padding: 6px; font-size:13px; background: rgba(1, 4, 9, 0.8); color: white; border: 1px solid #30363d; border-radius: 6px; outline: none;">
+                            <option value="recent">Recent</option>
+                            <option value="stars">Stars</option>
+                        </select>
                     </div>
                 </div>
-                
-                <div class="grid-panel">
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
-                        <h3 style="margin:0;">Repositories</h3>
-                        <div style="display:flex; gap:5px;">
-                            <input type="text" id="repo-search" placeholder="Filter..." style="padding: 6px; font-size:13px; width: 90px; min-height: unset; margin:0;" aria-label="Filter repositories">
-                            <select id="repo-sort" style="padding: 6px; font-size:13px; min-height: unset;" aria-label="Sort repositories">
-                                <option value="recent">Recent</option>
-                                <option value="stars">Stars</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="repo-list" role="list"></div>
-                </div>
-
-                <div class="grid-panel">
-                    <h3>Live Activity</h3>
-                    <div id="activity-list" style="display: flex; flex-direction: column; gap: 12px;" role="list"></div>
-                </div>
-            </section>
-        </article>
-    </main>
-
-    <div id="repoModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-        <div class="modal-content" id="modal-inner">
-            <button class="close-btn" id="close-modal-btn" aria-label="Close modal">&times;</button>
-            <h2 id="modal-title" style="color: var(--accent); margin-top: 0; margin-bottom: 5px;"></h2>
-            <p id="modal-desc" style="color: var(--text-muted); line-height: 1.5; margin-top: 0;"></p>
-            <div class="modal-stats">
-                <div><span style="color:var(--warning);">⭐ Stars:</span> <span id="modal-stars" style="color:white; font-weight:bold;"></span></div>
-                <div><span style="color:var(--accent);">🍴 Forks:</span> <span id="modal-forks" style="color:white; font-weight:bold;"></span></div>
-                <div><span style="color:var(--danger);">🐛 Issues:</span> <span id="modal-issues" style="color:white; font-weight:bold;"></span></div>
+                <div id="repo-list"></div>
             </div>
-            <h3 style="font-size: 14px; margin-top: 0;">README.md</h3>
-            <div id="modal-readme">Loading document...</div>
-            <button id="modal-link" class="btn-primary" style="width: 100%; flex-shrink: 0;">Open Source in GitHub</button>
+
+            <div class="activity-section">
+                <h3 style="margin-top:0; font-size:16px;">Live Activity</h3>
+                <div id="activity-list" style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;"></div>
+            </div>
         </div>
     </div>
 
-    <template id="repo-template">
-        <div class="repo-item" tabindex="0" role="listitem">
-            <div>
-                <div class="repo-link"></div>
-                <div class="repo-meta lang-meta"></div>
-            </div>
-            <div class="repo-meta stars-meta" style="color: var(--warning); font-weight: bold;"></div>
-        </div>
-    </template>
+    <div id="terminal-overlay">
+        <button class="exit-term-btn" id="exit-term-btn">[ EXIT ]</button>
+        <div id="terminal-output"></div><div class="term-cursor"></div>
+    </div>
 
-    <template id="activity-template">
-        <div style="font-size: 13px; line-height: 1.4; border-left: 2px solid var(--border-color); padding-left: 10px; position: relative;" role="listitem">
-            <span class="act-icon" style="position: absolute; left: -10px; top: -2px; background: var(--bg-dark); font-size: 12px;"></span>
-            <span class="act-date" style="color: var(--text-muted);"></span><br>
-            <span class="act-action" style="color: var(--text-main);"></span> 
-            <a class="act-repo" target="_blank" style="color: var(--accent); text-decoration: none; font-weight: bold;"></a>
+    <div id="wrapped-overlay">
+        <button class="exit-term-btn" id="exit-wrap-btn" style="border-color: white; color: white;">[ SKIP ]</button>
+        <div id="wrapped-content" style="position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;"></div>
+    </div>
+
+    <div id="repoModal" class="modal-overlay">
+        <div class="modal-content" id="modal-inner">
+            <a href="#" class="close-btn" id="close-modal-btn">&times;</a>
+            <h2 id="modal-title" style="color: #58a6ff; margin-top: 0; margin-bottom: 5px;"></h2>
+            <p id="modal-desc" style="color: #8b949e; line-height: 1.5; margin-top: 0;"></p>
+            <div class="modal-stats">
+                <div><span style="color:#e3b341;">⭐ Stars:</span> <span id="modal-stars" style="color:white; font-weight:bold;"></span></div>
+                <div><span style="color:#79c0ff;">🍴 Forks:</span> <span id="modal-forks" style="color:white; font-weight:bold;"></span></div>
+                <div><span style="color:#ff7b72;">🐛 Issues:</span> <span id="modal-issues" style="color:white; font-weight:bold;"></span></div>
+            </div>
+            <h3 style="font-size: 14px; margin-top: 0; color: #c9d1d9;">README.md</h3>
+            <div id="modal-readme">Loading document...</div>
+            <button id="modal-link" style="width: 100%; flex-shrink: 0;">Open Source in GitHub</button>
         </div>
-    </template>
+    </div>
 
     <script>
-        // Initialize Background immediately
+        // Initialize Vanta Background
         VANTA.NET({ el: "#vanta-bg", mouseControls: true, touchControls: true, color: 0x58a6ff, backgroundColor: 0x010409, points: 15.0, maxDistance: 25.0, spacing: 20.0 });
+        
+        // IIFE Enclosure to protect data scope
+        (function() {
+            let langChartInstance = null; 
+            let starChartInstance = null; 
+            let radarChartInstance = null; 
+            let punchChartInstance = null;
+            let globalRepoData = []; 
+            let wrappedData = {}; 
+            
+            // Global tracker for event delegation
+            let currentModalRepoFullname = '';
 
-        // Point 10: App Namespace encapsulating logic, state exposed for E2E testing
-        const App = (function() {
-            // State
-            const state = {
-                globalRepoData: [],
-                wrappedData: {},
-                currentModalRepoFullname: '',
-                librariesLoaded: false,
-                lastFocusedElement: null // Accessibility focus management
-            };
-
-            // POINT 7 & 9: Utilities (Debounce, Fetch Retry, Toast)
-            const utils = {
-                debounce: (func, delay) => {
-                    let timeoutId;
-                    return (...args) => {
-                        clearTimeout(timeoutId);
-                        timeoutId = setTimeout(() => func(...args), delay);
-                    };
-                },
-                
-                showToast: (message, type = 'success') => {
-                    const container = document.getElementById('toast-container');
-                    const toast = document.createElement('div');
-                    toast.className = `toast ${type}`;
-                    toast.textContent = message;
-                    container.appendChild(toast);
+            // Secure fetch wrapper (Timeout + Max Size)
+            const fetchWithTimeout = async (url, timeout = 5000, maxSize = 100000) => {
+                const controller = new AbortController();
+                const timer = setTimeout(() => controller.abort(), timeout);
+                try {
+                    const res = await fetch(url, { signal: controller.signal });
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     
-                    setTimeout(() => toast.classList.add('show'), 10);
-                    setTimeout(() => {
-                        toast.classList.remove('show');
-                        setTimeout(() => toast.remove(), 300);
-                    }, 3000);
-                },
-
-                loadExternalLibraries: async () => {
-                    if (state.librariesLoaded) return Promise.resolve();
-                    return new Promise((resolve) => {
-                        const chartScript = document.createElement('script');
-                        chartScript.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js';
-                        
-                        const markedScript = document.createElement('script');
-                        markedScript.src = 'https://cdn.jsdelivr.net/npm/marked@12.0.1/marked.min.js';
-                        
-                        let loaded = 0;
-                        const checkComplete = () => { loaded++; if(loaded === 2) { state.librariesLoaded = true; resolve(); }};
-                        
-                        chartScript.onload = checkComplete;
-                        markedScript.onload = checkComplete;
-                        
-                        document.head.appendChild(chartScript);
-                        document.head.appendChild(markedScript);
-                    });
-                }
-            };
-
-            // POINT 7: Error handling with Timeout and Retries
-            const api = {
-                fetchWithRetry: async (url, options = {}, retries = 2, timeout = 5000, maxSize = 100000) => {
-                    try {
-                        const controller = new AbortController();
-                        const timer = setTimeout(() => controller.abort(), timeout);
-                        const res = await fetch(url, { ...options, signal: controller.signal });
-                        clearTimeout(timer);
-                        
-                        if (!res.ok) {
-                            const errorData = await res.json().catch(() => ({}));
-                            throw new Error(errorData.error || `HTTP ${res.status}`);
-                        }
-                        return res;
-                    } catch (err) {
-                        if (retries > 0 && err.name !== 'AbortError') {
-                            return api.fetchWithRetry(url, options, retries - 1, timeout, maxSize);
-                        }
-                        throw err;
-                    }
-                },
-                
-                fetchMarkdown: async (url) => {
-                    const res = await api.fetchWithRetry(url, {}, 0, 4000); // No retries for markdown
                     const blob = await res.blob();
-                    if (blob.size > 150000) throw new Error('README too large');
+                    if (blob.size > maxSize) throw new Error('Response exceeds maximum allowed size.');
+                    
                     return await blob.text();
+                } finally {
+                    clearTimeout(timer);
                 }
             };
 
-            // POINT 8: Chart Factory (Cleaned up duplication)
-            const charts = {
-                instances: {},
-                create: (id, type, config) => {
-                    if (charts.instances[id]) charts.instances[id].destroy();
-                    Chart.defaults.color = '#8b949e';
-                    const ctx = document.getElementById(id).getContext('2d');
-                    charts.instances[id] = new Chart(ctx, {
-                        type,
-                        ...config,
-                        options: { maintainAspectRatio: false, ...config.options }
-                    });
-                },
-                renderAll: (data) => {
-                    charts.create('langChart', 'doughnut', {
-                        data: { labels: Object.keys(data.languages), datasets: [{ data: Object.values(data.languages), backgroundColor: ['#ff7b72', '#79c0ff', '#d2a8ff', '#a5d6ff', '#f0e68c', '#98fb98', '#ff9900'], borderWidth: 0 }] },
-                        options: { plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10 } } }, cutout: '65%' }
-                    });
+            document.addEventListener('DOMContentLoaded', () => {
+                // Event Listeners Initialization
+                document.getElementById('init-btn').addEventListener('click', launchEngine);
+                document.getElementById('analyze-btn').addEventListener('click', analyzeProfile);
+                document.getElementById('username').addEventListener('keypress', (e) => { if(e.key === 'Enter') analyzeProfile(); });
+                document.getElementById('repo-search').addEventListener('input', renderRepos);
+                document.getElementById('repo-sort').addEventListener('change', renderRepos);
+                document.getElementById('copy-btn').addEventListener('click', copyShareLink);
+                document.getElementById('term-btn').addEventListener('click', triggerTerminal);
+                document.getElementById('wrap-btn').addEventListener('click', triggerWrapped);
+                document.getElementById('exit-term-btn').addEventListener('click', () => {
+                    document.getElementById('terminal-overlay').style.display='none'; 
+                    document.getElementById('dashboard-content').style.display='block';
+                });
+                document.getElementById('exit-wrap-btn').addEventListener('click', () => {
+                    document.getElementById('wrapped-overlay').style.display='none'; 
+                    document.getElementById('dashboard-content').style.display='block';
+                });
+                
+                const repoModal = document.getElementById('repoModal');
+                repoModal.addEventListener('click', closeModal);
+                document.getElementById('close-modal-btn').addEventListener('click', closeModal);
+                document.getElementById('modal-inner').addEventListener('click', (e) => e.stopPropagation());
 
-                    const topStarred = [...data.recent_repos].sort((a, b) => b.stars - a.stars).slice(0, 5);
-                    charts.create('starChart', 'bar', {
-                        data: { labels: topStarred.map(r => r.name.length > 10 ? r.name.substring(0,10) + '...' : r.name), datasets: [{ label: 'Stars', data: topStarred.map(r => r.stars), backgroundColor: '#e3b341', borderRadius: 4 }] },
-                        options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } }
-                    });
-
-                    const top6 = Object.entries(data.languages).sort((a,b) => b[1]-a[1]).slice(0,6);
-                    charts.create('radarChart', 'radar', {
-                        data: { labels: top6.map(l => l[0]), datasets: [{ label: 'Projects', data: top6.map(l => l[1]), backgroundColor: 'rgba(88, 166, 255, 0.4)', borderColor: '#58a6ff', pointBackgroundColor: '#fff', borderWidth: 1 }] },
-                        options: { scales: { r: { angleLines: { color: 'rgba(255,255,255,0.1)' }, grid: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#c9d1d9', font: {size: 10} }, ticks: { display: false } } }, plugins: { legend: { display: false } } }
-                    });
-
-                    const punchMap = {}; data.punchcard.forEach(p => { punchMap[`${p.x},${p.y}`] = (punchMap[`${p.x},${p.y}`] || 0) + 1; });
-                    const bubbleData = Object.keys(punchMap).map(key => { const [x, y] = key.split(',').map(Number); return { x: x, y: y, r: Math.min(punchMap[key] * 3, 15) }; });
-                    charts.create('punchChart', 'bubble', {
-                        data: { datasets: [{ label: 'Commits', data: bubbleData, backgroundColor: 'rgba(88, 166, 255, 0.6)', borderColor: '#58a6ff' }] },
-                        options: { plugins: { legend: { display: false } }, scales: { y: { min: -0.5, max: 6.5, reverse: true, ticks: { callback: val => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][val], color: '#8b949e', font: {size: 10} }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { min: -1, max: 24, ticks: { callback: val => val+':00', stepSize: 4, color: '#8b949e', font: {size: 10} }, grid: { display: false } } } }
-                    });
-                }
-            };
-
-            // DOM & UI Updates
-            const ui = {
-                launchEngine: () => {
-                    const landing = document.getElementById('landing-page');
-                    const dashboard = document.getElementById('dashboard-content');
-                    landing.classList.add('fade-out');
-                    setTimeout(() => { landing.style.display = 'none'; dashboard.classList.add('fade-in'); }, 600);
-                },
-
-                renderRepos: () => {
-                    const term = DOMPurify.sanitize(document.getElementById('repo-search').value.toLowerCase());
-                    const sortBy = DOMPurify.sanitize(document.getElementById('repo-sort').value);
-                    const list = document.getElementById('repo-list');
-                    const template = document.getElementById('repo-template');
-
-                    let filtered = state.globalRepoData.filter(r => r.name.toLowerCase().includes(term) || (r.lang && r.lang.toLowerCase().includes(term)));
-                    if (sortBy === 'stars') filtered.sort((a, b) => b.stars - a.stars);
-                    else if (sortBy === 'recent') filtered.sort((a, b) => new Date(b.updated) - new Date(a.updated));
-
-                    list.innerHTML = '';
-                    if (filtered.length === 0) { list.innerHTML = '<p style="color:#8b949e; text-align:center;">No repositories found.</p>'; return; }
-
-                    // POINT 3: Using <template> for clean DOM generation
-                    filtered.forEach((repo, index) => {
-                        const clone = template.content.cloneNode(true);
-                        const item = clone.querySelector('.repo-item');
-                        
-                        clone.querySelector('.repo-link').textContent = repo.name;
-                        clone.querySelector('.lang-meta').textContent = `💻 ${repo.lang || 'Code'}`;
-                        clone.querySelector('.stars-meta').textContent = `⭐ ${repo.stars}`;
-                        
-                        item.addEventListener('click', () => ui.openModal(index));
-                        item.addEventListener('keypress', (e) => { if(e.key === 'Enter') ui.openModal(index); }); // Accessibility
-                        
-                        list.appendChild(clone);
-                    });
-                },
-
-                openModal: async (index) => {
-                    state.lastFocusedElement = document.activeElement; // A11y focus management
-                    const repo = state.globalRepoData[index];
-                    state.currentModalRepoFullname = repo.full_name;
-
-                    document.getElementById('modal-title').textContent = repo.name;
-                    document.getElementById('modal-desc').textContent = repo.desc;
-                    document.getElementById('modal-stars').textContent = repo.stars;
-                    document.getElementById('modal-forks').textContent = repo.forks;
-                    document.getElementById('modal-issues').textContent = repo.issues;
-                    
-                    const modal = document.getElementById('repoModal');
-                    modal.style.display = 'flex';
-                    document.getElementById('close-modal-btn').focus();
-                    
-                    const readmeDiv = document.getElementById('modal-readme');
-                    readmeDiv.innerHTML = '<p style="color:var(--accent);">Fetching documentation...</p>';
-                    
-                    try {
-                        const markdownText = await api.fetchMarkdown(`https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/README.md`);
-                        readmeDiv.innerHTML = DOMPurify.sanitize(marked.parse(markdownText), {
-                            ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'code', 'pre', 'p', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'blockquote', 'img', 'br', 'span', 'div'],
-                            ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class']
-                        });
-                    } catch (err) {
-                        readmeDiv.innerHTML = `<p style="color:var(--danger);">Failed to load documentation: ${err.message}</p>`;
+                // Event Delegation for Modal Link
+                document.addEventListener('click', function(e) {
+                    if (e.target && e.target.id === 'modal-link') {
+                        if (currentModalRepoFullname) {
+                            window.open(`https://github.com/${currentModalRepoFullname}`, '_blank');
+                        }
                     }
-                },
+                });
 
-                closeModal: (e) => {
-                    if (e) e.preventDefault();
-                    document.getElementById('repoModal').style.display = 'none';
-                    state.currentModalRepoFullname = '';
-                    if (state.lastFocusedElement) state.lastFocusedElement.focus(); // A11y restore focus
-                },
+                // URL Parameter Processing
+                const params = new URLSearchParams(window.location.search);
+                if(params.has('user')) { 
+                    const safeUser = DOMPurify.sanitize(params.get('user'));
+                    document.getElementById('landing-page').style.display = 'none';
+                    document.getElementById('dashboard-content').classList.add('fade-in');
+                    document.getElementById('username').value = safeUser; 
+                    analyzeProfile(); 
+                }
+            });
 
-                populateDashboard: (data) => {
+            function launchEngine() {
+                const landing = document.getElementById('landing-page');
+                const dashboard = document.getElementById('dashboard-content');
+                landing.classList.add('fade-out');
+                setTimeout(() => {
+                    landing.style.display = 'none';
+                    dashboard.classList.add('fade-in');
+                }, 600); 
+            }
+
+            async function analyzeProfile() {
+                const rawInput = document.getElementById('username').value.trim();
+                const username = DOMPurify.sanitize(rawInput);
+                
+                if (!username) return;
+                
+                if (username.length > 39 || !/^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$/.test(username)) {
+                    alert('Invalid GitHub username format.');
+                    return;
+                }
+                
+                const btn = document.getElementById('analyze-btn'); 
+                btn.innerText = "Analyzing..."; 
+                btn.disabled = true;
+                
+                const params = new URLSearchParams();
+                params.set('user', username);
+                window.history.pushState({}, '', '?' + params.toString());
+
+                try {
+                    const response = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ username: username })
+                    });
+                    
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.error || 'Server rejected the request.');
+                    }
+
+                    globalRepoData = data.recent_repos || []; 
+                    wrappedData = { timeline: data.profile.timeline, name: data.profile.name, topLang: Object.keys(data.languages)[0] || 'Code' };
+
                     document.getElementById('avatar').style.display = "inline";
                     document.getElementById('stats-grid').style.display = "flex";
                     document.getElementById('heatmap-section').style.display = "block";
-                    document.getElementById('bottom-split').style.display = "grid";
+                    document.getElementById('bottom-split').style.display = "flex";
                     document.getElementById('copy-btn').style.display = "inline-block";
+                    document.getElementById('term-btn').style.display = "inline-block";
+                    document.getElementById('wrap-btn').style.display = "inline-block";
                     
-                    const summary = document.getElementById('ai-summary-container');
-                    summary.style.display = "block";
-                    summary.innerHTML = DOMPurify.sanitize(data.profile.ai_summary);
+                    document.getElementById('ai-summary-container').style.display = "block";
+                    document.getElementById('ai-summary-container').innerHTML = DOMPurify.sanitize(data.profile.ai_summary);
 
                     document.getElementById('avatar').src = DOMPurify.sanitize(data.profile.avatar);
                     document.getElementById('name').textContent = data.profile.name;
@@ -439,140 +337,255 @@
                     document.getElementById('repos').textContent = data.profile.repos;
                     document.getElementById('followers').textContent = data.profile.followers;
                     document.getElementById('stars').textContent = data.profile.total_stars;
-                    document.getElementById('current-streak').textContent = `${data.profile.current_streak} 🔥`;
-                    document.getElementById('longest-streak').textContent = `${data.profile.longest_streak} 🏆`;
+                    document.getElementById('current-streak').textContent = data.profile.current_streak + ' 🔥';
+                    document.getElementById('longest-streak').textContent = data.profile.longest_streak + ' 🏆';
                     document.getElementById('bug-hunter').textContent = data.profile.bug_hunter;
                     document.getElementById('persona').textContent = data.profile.persona;
-                    
-                    // Template usage for activities
-                    const activityList = document.getElementById('activity-list');
+
+                    const orgsContainer = document.getElementById('orgs-container'); 
+                    orgsContainer.innerHTML = '';
+                    if (data.organizations) {
+                        let orgsHTML = '';
+                        data.organizations.forEach(org => {
+                            const safeAvatar = DOMPurify.sanitize(org.avatar);
+                            const safeLogin = DOMPurify.sanitize(org.login);
+                            orgsHTML += `<img src="${safeAvatar}" title="${safeLogin}" style="width: 32px; height: 32px; border-radius: 6px; border: 1px solid #30363d;">`;
+                        });
+                        orgsContainer.innerHTML = DOMPurify.sanitize(orgsHTML);
+                    }
+
+                    const badgesContainer = document.getElementById('badges-container'); 
+                    badgesContainer.innerHTML = '';
+                    if (data.badges) {
+                        let badgesHTML = '';
+                        data.badges.forEach(b => {
+                            badgesHTML += `<span class="badge" title="${DOMPurify.sanitize(b.desc)}">${DOMPurify.sanitize(b.icon)} ${DOMPurify.sanitize(b.title)}</span>`;
+                        });
+                        badgesContainer.innerHTML = DOMPurify.sanitize(badgesHTML);
+                    }
+
+                    document.getElementById('repo-search').value = ''; 
+                    document.getElementById('repo-sort').value = 'recent'; 
+                    renderRepos();
+
+                    const activityList = document.getElementById('activity-list'); 
                     activityList.innerHTML = '';
                     if (data.recent_activity && data.recent_activity.length > 0) {
-                        const template = document.getElementById('activity-template');
-                        data.recent_activity.forEach(act => {
-                            const clone = template.content.cloneNode(true);
-                            clone.querySelector('.act-icon').textContent = act.icon;
-                            clone.querySelector('.act-date').textContent = act.date;
-                            clone.querySelector('.act-action').textContent = act.action;
-                            const link = clone.querySelector('.act-repo');
-                            link.href = `https://github.com/${act.full_repo}`;
-                            link.textContent = act.repo;
-                            activityList.appendChild(clone);
+                        let activityHTML = '';
+                        data.recent_activity.forEach(activity => {
+                            activityHTML += `
+                                <div style="font-size: 13px; line-height: 1.4; border-left: 2px solid #30363d; padding-left: 10px; position: relative;">
+                                    <span style="position: absolute; left: -10px; top: -2px; background: #0d1117; font-size: 12px;">${DOMPurify.sanitize(activity.icon)}</span>
+                                    <span style="color: #8b949e;">${DOMPurify.sanitize(activity.date)}</span><br>
+                                    <span style="color: #c9d1d9;">${DOMPurify.sanitize(activity.action)}</span> <a href="https://github.com/${DOMPurify.sanitize(activity.full_repo)}" target="_blank" style="color: #58a6ff; text-decoration: none; font-weight: bold;">${DOMPurify.sanitize(activity.repo)}</a>
+                                </div>`;
                         });
-                    } else { activityList.textContent = 'No recent public activity.'; }
+                        activityList.innerHTML = DOMPurify.sanitize(activityHTML);
+                    } else {
+                        activityList.textContent = 'No recent public activity.';
+                    }
 
-                    // Heatmap (Safe check)
-                    const heatmapEl = document.getElementById('heatmap'); heatmapEl.innerHTML = '';
+                    // UPDATED: Chart rendering with maintainAspectRatio: false for the new unified scrollable layout
+                    Chart.defaults.color = '#8b949e';
+                    
+                    if (langChartInstance) langChartInstance.destroy();
+                    langChartInstance = new Chart(document.getElementById('langChart').getContext('2d'), { 
+                        type: 'doughnut', 
+                        data: { labels: Object.keys(data.languages), datasets: [{ data: Object.values(data.languages), backgroundColor: ['#ff7b72', '#79c0ff', '#d2a8ff', '#a5d6ff', '#f0e68c', '#98fb98', '#ff9900'], borderWidth: 0 }] }, 
+                        options: { maintainAspectRatio: false, plugins: { legend: { display: true, position: 'right', labels: { boxWidth: 10 } } }, cutout: '65%' } 
+                    });
+
+                    if (starChartInstance) starChartInstance.destroy();
+                    const topStarred = [...data.recent_repos].sort((a, b) => b.stars - a.stars).slice(0, 5);
+                    starChartInstance = new Chart(document.getElementById('starChart').getContext('2d'), { 
+                        type: 'bar', 
+                        data: { labels: topStarred.map(r => r.name.length > 10 ? r.name.substring(0,10) + '...' : r.name), datasets: [{ label: 'Stars', data: topStarred.map(r => r.stars), backgroundColor: '#e3b341', borderRadius: 4 }] }, 
+                        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { grid: { display: false } } } } 
+                    });
+
+                    if (radarChartInstance) radarChartInstance.destroy();
+                    const top6 = Object.entries(data.languages).sort((a,b) => b[1]-a[1]).slice(0,6);
+                    radarChartInstance = new Chart(document.getElementById('radarChart').getContext('2d'), { 
+                        type: 'radar', 
+                        data: { labels: top6.map(l => l[0]), datasets: [{ label: 'Projects', data: top6.map(l => l[1]), backgroundColor: 'rgba(88, 166, 255, 0.4)', borderColor: '#58a6ff', pointBackgroundColor: '#fff', borderWidth: 1 }] }, 
+                        options: { maintainAspectRatio: false, scales: { r: { angleLines: { color: 'rgba(255,255,255,0.1)' }, grid: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#c9d1d9', font: {size: 10} }, ticks: { display: false } } }, plugins: { legend: { display: false } } } 
+                    });
+
+                    if (punchChartInstance) punchChartInstance.destroy();
+                    const punchMap = {}; data.punchcard.forEach(p => { punchMap[`${p.x},${p.y}`] = (punchMap[`${p.x},${p.y}`] || 0) + 1; });
+                    const bubbleData = Object.keys(punchMap).map(key => { const [x, y] = key.split(',').map(Number); return { x: x, y: y, r: Math.min(punchMap[key] * 3, 15) }; });
+                    punchChartInstance = new Chart(document.getElementById('punchChart').getContext('2d'), { 
+                        type: 'bubble', 
+                        data: { datasets: [{ label: 'Commits', data: bubbleData, backgroundColor: 'rgba(88, 166, 255, 0.6)', borderColor: '#58a6ff' }] }, 
+                        options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { min: -0.5, max: 6.5, reverse: true, ticks: { callback: val => ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][val], color: '#8b949e', font: {size: 10} }, grid: { color: 'rgba(255,255,255,0.05)' } }, x: { min: -1, max: 24, ticks: { callback: val => val+':00', stepSize: 4, color: '#8b949e', font: {size: 10} }, grid: { display: false } } } } 
+                    });
+
+                    const heatmapEl = document.getElementById('heatmap'); heatmapEl.innerHTML = ''; 
+                    // Safe Traversal for Heatmap Arrays
                     if (data.heatmap && Array.isArray(data.heatmap.weeks)) {
                         document.getElementById('heatmap-title').textContent = `Contributions (${data.heatmap.totalContributions || 0} in the last year)`;
                         data.heatmap.weeks.forEach(week => {
                             if (!Array.isArray(week.contributionDays)) return;
-                            const weekDiv = document.createElement('div'); weekDiv.className = 'week';
+                            const weekDiv = document.createElement('div'); 
+                            weekDiv.className = 'week';
+                            
                             week.contributionDays.forEach(day => {
                                 if (!day || !day.color) return;
-                                const dayDiv = document.createElement('div'); dayDiv.className = 'day';
-                                dayDiv.style.backgroundColor = DOMPurify.sanitize(day.color);
-                                dayDiv.title = `${DOMPurify.sanitize((day.contributionCount || 0).toString())} on ${DOMPurify.sanitize(day.date || '')}`;
+                                const dayDiv = document.createElement('div'); 
+                                dayDiv.className = 'day'; 
+                                dayDiv.style.backgroundColor = DOMPurify.sanitize(day.color); 
+                                dayDiv.title = `${DOMPurify.sanitize((day.contributionCount || 0).toString())} on ${DOMPurify.sanitize(day.date || '')}`; 
                                 weekDiv.appendChild(dayDiv);
                             });
                             heatmapEl.appendChild(weekDiv);
                         });
                         heatmapEl.scrollLeft = heatmapEl.scrollWidth;
                     }
-                }
-            };
-
-            const analyzeProfile = async () => {
-                const rawInput = document.getElementById('username').value.trim();
-                const username = DOMPurify.sanitize(rawInput);
-                
-                if (!username) return;
-                if (!/^[a-zA-Z0-9][a-zA-Z0-9-]{0,38}$/.test(username)) {
-                    utils.showToast('Invalid GitHub username format.', 'error');
-                    return;
-                }
-                
-                const btn = document.getElementById('analyze-btn');
-                btn.innerText = "Analyzing..."; btn.disabled = true;
-                
-                const params = new URLSearchParams(); params.set('user', username);
-                window.history.pushState({}, '', '?' + params.toString());
-
-                try {
-                    // Start fetching API AND loading external scripts concurrently
-                    const [res, _] = await Promise.all([
-                        api.fetchWithRetry('/api/analyze', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ username })
-                        }),
-                        utils.loadExternalLibraries() // POINT 1: Lazy Load dynamically
-                    ]);
-                    
-                    const data = await res.json();
-                    
-                    state.globalRepoData = data.recent_repos || [];
-                    state.wrappedData = { timeline: data.profile.timeline, name: data.profile.name, topLang: Object.keys(data.languages)[0] || 'Code' };
-                    
-                    ui.populateDashboard(data);
-                    ui.renderRepos();
-                    charts.renderAll(data);
-                    
-                } catch (error) {
-                    utils.showToast(error.message, 'error');
+                } catch (error) { 
+                    alert(`Error: ${error.message}`); 
                 } finally {
-                    btn.innerText = "Analyze"; btn.disabled = false;
+                    btn.innerText = "Analyze"; 
+                    btn.disabled = false;
                 }
-            };
+            }
 
-            // Initialization & Event Binding
-            const init = () => {
-                // Binding Setup
-                document.getElementById('init-btn').addEventListener('click', ui.launchEngine);
-                document.getElementById('analyze-btn').addEventListener('click', analyzeProfile);
-                document.getElementById('username').addEventListener('keypress', (e) => { if(e.key === 'Enter') analyzeProfile(); });
+            function renderRepos() {
+                const searchTerm = DOMPurify.sanitize(document.getElementById('repo-search').value.toLowerCase());
+                const sortBy = DOMPurify.sanitize(document.getElementById('repo-sort').value);
+                const repoList = document.getElementById('repo-list');
+
+                let filtered = globalRepoData.filter(r => r.name.toLowerCase().includes(searchTerm) || (r.lang && r.lang.toLowerCase().includes(searchTerm)));
+                if (sortBy === 'stars') filtered.sort((a, b) => b.stars - a.stars);
+                else if (sortBy === 'recent') filtered.sort((a, b) => new Date(b.updated) - new Date(a.updated));
+
+                repoList.innerHTML = '';
+                if (filtered.length === 0) { repoList.innerHTML = '<p style="color:#8b949e; text-align:center;">No repositories found.</p>'; return; }
+
+                filtered.forEach((repo, index) => {
+                    const repoItem = document.createElement('div');
+                    repoItem.className = 'repo-item';
+                    repoItem.addEventListener('click', () => openModal(index));
+                    
+                    repoItem.innerHTML = DOMPurify.sanitize(`
+                        <div>
+                            <div class="repo-link">${repo.name}</div>
+                            <div class="repo-meta">💻 ${repo.lang}</div>
+                        </div>
+                        <div class="repo-meta" style="color: #e3b341; font-weight: bold;">⭐ ${repo.stars.toString()}</div>
+                    `);
+                    repoList.appendChild(repoItem);
+                });
+            }
+
+            async function openModal(index) {
+                const repo = globalRepoData[index];
                 
-                // Debounced Search (Point 9)
-                document.getElementById('repo-search').addEventListener('input', utils.debounce(ui.renderRepos, 300));
-                document.getElementById('repo-sort').addEventListener('change', ui.renderRepos);
+                // Track current repo for event delegation mapping
+                currentModalRepoFullname = repo.full_name;
+
+                document.getElementById('modal-title').textContent = repo.name; 
+                document.getElementById('modal-desc').textContent = repo.desc; 
+                document.getElementById('modal-stars').textContent = repo.stars; 
+                document.getElementById('modal-forks').textContent = repo.forks; 
+                document.getElementById('modal-issues').textContent = repo.issues; 
                 
-                document.getElementById('copy-btn').addEventListener('click', () => {
-                    navigator.clipboard.writeText(window.location.href).then(() => {
-                        utils.showToast('Dashboard Link Copied!', 'success');
+                document.getElementById('repoModal').style.display = 'flex';
+                
+                const readmeDiv = document.getElementById('modal-readme'); 
+                readmeDiv.innerHTML = '<p style="color:#58a6ff;">Fetching documentation...</p>';
+                
+                try {
+                    const markdownText = await fetchWithTimeout(
+                        `https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}/README.md`
+                    );
+                    
+                    // Strict DOMPurify Configuration
+                    const cleanHTML = DOMPurify.sanitize(marked.parse(markdownText), {
+                        ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'code', 'pre', 'p', 'a', 'ul', 'ol', 'li', 'h1', 'h2', 'h3', 'blockquote', 'img', 'br', 'span', 'div'],
+                        ALLOWED_ATTR: ['href', 'target', 'src', 'alt', 'class']
                     });
-                });
-
-                // Modal Management
-                document.getElementById('repoModal').addEventListener('click', ui.closeModal);
-                document.getElementById('close-modal-btn').addEventListener('click', ui.closeModal);
-                document.getElementById('modal-inner').addEventListener('click', (e) => e.stopPropagation());
-                
-                // Event Delegation for dynamically generated GitHub link
-                document.addEventListener('click', (e) => {
-                    if (e.target && e.target.id === 'modal-link' && state.currentModalRepoFullname) {
-                        window.open(`https://github.com/${state.currentModalRepoFullname}`, '_blank');
-                    }
-                });
-
-                // URL Param Bootstrapping
-                const params = new URLSearchParams(window.location.search);
-                if(params.has('user')) {
-                    const safeUser = DOMPurify.sanitize(params.get('user'));
-                    document.getElementById('landing-page').style.display = 'none';
-                    document.getElementById('dashboard-content').classList.add('fade-in');
-                    document.getElementById('username').value = safeUser;
-                    analyzeProfile();
+                    
+                    readmeDiv.innerHTML = cleanHTML;
+                } catch (err) { 
+                    readmeDiv.innerHTML = `<p style="color:#ff7b72;">Failed to load documentation: ${err.message}</p>`; 
                 }
-            };
+            }
 
-            // Expose required internals for end-to-end testing (Point 10)
-            window.__APP_STATE__ = state;
+            function closeModal(event) { 
+                if (event) event.preventDefault(); 
+                document.getElementById('repoModal').style.display = 'none'; 
+                currentModalRepoFullname = ''; // Reset tracker
+            }
 
-            return { init };
+            function copyShareLink() { 
+                navigator.clipboard.writeText(window.location.href).then(() => { 
+                    const btn = document.getElementById('copy-btn'); 
+                    btn.innerText = "✅ Link Copied!"; 
+                    setTimeout(() => btn.innerText = "🔗 Share Dashboard", 2000); 
+                }); 
+            }
+
+            function triggerTerminal() {
+                document.getElementById('dashboard-content').style.display = 'none'; 
+                document.getElementById('terminal-overlay').style.display = 'block';
+                const output = document.getElementById('terminal-output'); 
+                output.innerHTML = '';
+                const lines = [
+                    `> INITIALIZING V2... [OK]`, 
+                    `> TARGET ACQUIRED: ${document.getElementById('name').textContent.toUpperCase()}`, 
+                    `> IDENTIFIED PERSONA: ${document.getElementById('persona').textContent}`, 
+                    `> REPOSITORIES: ${document.getElementById('repos').textContent}`, 
+                    `> TOTAL STAR POWER: ${document.getElementById('stars').textContent}`, 
+                    `> AWAITING COMMAND_`
+                ];
+                let i = 0; 
+                function typeLine() { 
+                    if (i < lines.length) { 
+                        const l = document.createElement('div'); 
+                        l.className = 'term-line'; 
+                        l.textContent = lines[i]; 
+                        output.appendChild(l); 
+                        setTimeout(() => l.style.opacity = 1, 50); 
+                        i++; 
+                        setTimeout(typeLine, Math.random() * 300 + 200); 
+                    } 
+                } 
+                typeLine();
+            }
+
+            function triggerWrapped() {
+                document.getElementById('dashboard-content').style.display = 'none'; 
+                document.getElementById('wrapped-overlay').style.display = 'flex';
+                const wrapContent = document.getElementById('wrapped-content'); 
+                wrapContent.innerHTML = '';
+                
+                const years = Object.keys(wrappedData.timeline).sort();
+                const activeYear = years.length > 0 ? years[years.length-1] : "Recently";
+                const reposThatYear = wrappedData.timeline[activeYear] || 0;
+
+                const slides = [
+                    `Ready to look back, ${wrappedData.name.split(' ')[0]}? 🎧`,
+                    `You've been building the future.`,
+                    `In ${activeYear} alone, you started ${reposThatYear} new projects.`,
+                    `And you poured your soul into ${wrappedData.topLang}.`,
+                    `Keep building. 🚀`
+                ];
+
+                let i = 0;
+                function showSlide() {
+                    if(i < slides.length) {
+                        wrapContent.innerHTML = `<div class="wrapped-slide">${DOMPurify.sanitize(slides[i])}</div>`;
+                        const slideEl = wrapContent.querySelector('.wrapped-slide');
+                        setTimeout(() => slideEl.style.opacity = 1, 100);
+                        setTimeout(() => { slideEl.style.opacity = 0; i++; setTimeout(showSlide, 1000); }, 3500);
+                    } else {
+                        document.getElementById('wrapped-overlay').style.display = 'none';
+                        document.getElementById('dashboard-content').style.display = 'block';
+                    }
+                }
+                showSlide();
+            }
         })();
-
-        // Start App
-        document.addEventListener('DOMContentLoaded', App.init);
     </script>
 </body>
 </html>
